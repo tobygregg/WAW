@@ -253,9 +253,9 @@
 }
 .hero-overlay {
   background:
-    radial-gradient(1200px 600px at 15% 85%, rgba(127, 184, 41, 0.28), transparent 60%),
-    linear-gradient(100deg, rgba(19, 15, 46, 0.92) 0%, rgba(39, 33, 81, 0.72) 45%, rgba(39, 33, 81, 0.35) 100%),
-    linear-gradient(0deg, rgba(19, 15, 46, 0.7) 0%, transparent 35%);
+    radial-gradient(1200px 600px at 15% 85%, rgba(127, 184, 41, 0.22), transparent 60%),
+    linear-gradient(100deg, rgba(19, 15, 46, 0.95) 0%, rgba(39, 33, 81, 0.82) 45%, rgba(39, 33, 81, 0.6) 100%),
+    linear-gradient(0deg, rgba(19, 15, 46, 0.75) 0%, transparent 40%);
 }
 .hero-big {
   font-size: clamp(4.6rem, 13.2vw, 12.5rem);
