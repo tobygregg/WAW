@@ -1,0 +1,587 @@
+/* =====================================================================
+   World Aid Walk — Tailwind source CSS
+   Edit this file (not styles.css), then run:  npm run build
+   ===================================================================== */
+
+/* ---------- Self-hosted fonts (fast + no cookie banners needed) ---------- */
+@font-face {
+  font-family: "Archivo Black";
+  src: url("../fonts/archivo-black.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Archivo";
+  src: url("../fonts/archivo-var.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Caveat";
+  src: url("../fonts/caveat-700.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ---------- Base ---------- */
+@layer base {
+  :root {
+    --navy: #272151;
+    --lime: #7fb829;
+    --nav-h: 76px;
+  }
+  html,
+  body {
+    overflow-x: clip;
+  }
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: calc(var(--nav-h) + 16px);
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-white font-sans text-navy antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  ::selection {
+    background: var(--lime);
+    color: var(--navy);
+  }
+  :focus-visible {
+    outline: 3px solid var(--lime);
+    outline-offset: 3px;
+    border-radius: 6px;
+  }
+  img,
+  video {
+    max-width: 100%;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+    }
+  }
+}
+
+/* ---------- Components ---------- */
+@layer components {
+  .container-x {
+    @apply mx-auto w-full max-w-7xl px-5 sm:px-8 lg:px-10;
+  }
+
+  /* Buttons */
+  .btn {
+    @apply relative inline-flex items-center justify-center gap-2 rounded-full px-6 py-3.5 text-[0.95rem] font-extrabold tracking-wide transition duration-300 will-change-transform;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn:active {
+    transform: scale(0.97);
+  }
+  .btn-lime {
+    @apply bg-lime text-navy shadow-[0_10px_30px_-10px_rgba(127,184,41,0.8)] hover:-translate-y-0.5 hover:bg-lime-400 hover:shadow-[0_18px_40px_-12px_rgba(127,184,41,0.9)];
+  }
+  .btn-navy {
+    @apply bg-navy text-white shadow-soft hover:-translate-y-0.5 hover:bg-navy-600 hover:shadow-lift;
+  }
+  .btn-glass {
+    @apply border border-white/30 bg-white/10 text-white backdrop-blur-md hover:-translate-y-0.5 hover:bg-white/20;
+  }
+  .btn-outline {
+    @apply border-2 border-navy/15 bg-white text-navy hover:-translate-y-0.5 hover:border-navy hover:shadow-soft;
+  }
+  .btn .btn-arrow {
+    @apply transition-transform duration-300;
+  }
+  .btn:hover .btn-arrow {
+    transform: translateX(4px);
+  }
+
+  /* Eyebrow pill */
+  .eyebrow {
+    @apply inline-flex items-center gap-2 rounded-full bg-lime/15 px-3.5 py-1.5 text-xs font-extrabold uppercase tracking-[0.18em] text-lime-700;
+  }
+  .eyebrow::before {
+    content: "";
+    @apply h-1.5 w-1.5 rounded-full bg-lime;
+  }
+  .eyebrow-light {
+    @apply bg-white/10 text-lime-300;
+  }
+
+  .section-title {
+    @apply font-display text-[2.4rem] leading-[0.98] tracking-tight text-navy sm:text-5xl lg:text-6xl;
+  }
+  .hand {
+    @apply font-hand;
+  }
+
+  /* Squiggle underline used on key words */
+  .squiggle {
+    @apply relative inline-block whitespace-nowrap;
+  }
+  .squiggle svg {
+    @apply pointer-events-none absolute -bottom-2 left-0 h-3 w-full text-lime;
+  }
+
+  .card {
+    @apply rounded-4xl border border-navy/[0.06] bg-white shadow-soft;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full bg-navy/[0.06] px-3 py-1 text-xs font-bold text-navy;
+  }
+}
+
+/* ---------- Navigation ---------- */
+.site-nav {
+  transition: padding 0.4s ease;
+}
+.site-nav .nav-shell {
+  transition:
+    background-color 0.45s ease,
+    box-shadow 0.45s ease,
+    border-color 0.45s ease,
+    max-width 0.45s ease,
+    padding 0.45s ease,
+    backdrop-filter 0.45s ease;
+  border: 1px solid transparent;
+}
+.site-nav .nav-link {
+  color: #fff;
+}
+.site-nav .nav-logo-text {
+  color: #fff;
+}
+.site-nav.is-scrolled,
+.site-nav.is-solid {
+  padding-top: 0.75rem;
+}
+.site-nav.is-scrolled .nav-shell,
+.site-nav.is-solid .nav-shell {
+  background: rgba(255, 255, 255, 0.86);
+  backdrop-filter: blur(18px) saturate(1.6);
+  -webkit-backdrop-filter: blur(18px) saturate(1.6);
+  box-shadow: 0 18px 40px -22px rgba(39, 33, 81, 0.45);
+  border-color: rgba(39, 33, 81, 0.07);
+  max-width: 76rem;
+}
+.site-nav.is-scrolled .nav-link,
+.site-nav.is-solid .nav-link,
+.site-nav.is-scrolled .nav-logo-text,
+.site-nav.is-solid .nav-logo-text {
+  color: var(--navy);
+}
+.site-nav.is-scrolled .menu-toggle,
+.site-nav.is-solid .menu-toggle {
+  color: var(--navy);
+  border-color: rgba(39, 33, 81, 0.15);
+}
+.nav-link {
+  position: relative;
+}
+.nav-link::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 2px;
+  width: 6px;
+  height: 6px;
+  border-radius: 99px;
+  background: var(--lime);
+  transform: translateX(-50%) scale(0);
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.nav-link:hover::after,
+.nav-link.is-active::after {
+  transform: translateX(-50%) scale(1);
+}
+
+/* Mobile menu */
+.mobile-menu {
+  clip-path: circle(0% at calc(100% - 44px) 44px);
+  transition: clip-path 0.7s cubic-bezier(0.77, 0, 0.18, 1);
+  pointer-events: none;
+}
+.mobile-menu.is-open {
+  clip-path: circle(150% at calc(100% - 44px) 44px);
+  pointer-events: auto;
+}
+.mobile-menu .mm-link {
+  opacity: 0;
+  transform: translateY(24px);
+  transition:
+    opacity 0.5s ease,
+    transform 0.5s ease;
+}
+.mobile-menu.is-open .mm-link {
+  opacity: 1;
+  transform: none;
+}
+.menu-toggle .bar {
+  transition:
+    transform 0.4s ease,
+    opacity 0.3s ease;
+  transform-origin: center;
+}
+.menu-open .menu-toggle .bar-1 {
+  transform: translateY(6px) rotate(45deg);
+}
+.menu-open .menu-toggle .bar-2 {
+  opacity: 0;
+}
+.menu-open .menu-toggle .bar-3 {
+  transform: translateY(-6px) rotate(-45deg);
+}
+
+/* ---------- Hero ---------- */
+.hero-video {
+  transform: scale(1.06);
+}
+.hero-overlay {
+  background:
+    radial-gradient(1200px 600px at 15% 85%, rgba(127, 184, 41, 0.28), transparent 60%),
+    linear-gradient(100deg, rgba(19, 15, 46, 0.92) 0%, rgba(39, 33, 81, 0.72) 45%, rgba(39, 33, 81, 0.35) 100%),
+    linear-gradient(0deg, rgba(19, 15, 46, 0.7) 0%, transparent 35%);
+}
+.hero-big {
+  font-size: clamp(4.6rem, 13.2vw, 12.5rem);
+  line-height: 0.84;
+  white-space: nowrap;
+  letter-spacing: -0.03em;
+}
+.hero-year {
+  -webkit-text-stroke: 2px var(--lime);
+  color: transparent;
+  letter-spacing: 0.04em;
+}
+.grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.08;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.split-char {
+  display: inline-block;
+  will-change: transform;
+}
+
+/* ---------- Footprints ---------- */
+.foot {
+  display: block;
+  width: var(--fs, 22px);
+  height: calc(var(--fs, 22px) * 1.57);
+}
+/* looping "walk" trails dotted around the site */
+.walk-trail {
+  position: absolute;
+  pointer-events: none;
+  width: var(--len, 420px);
+  height: 60px;
+  transform-origin: left center;
+}
+.walk-trail .step {
+  position: absolute;
+  top: 50%;
+  opacity: 0;
+  animation: footstep var(--dur, 6s) linear infinite;
+  animation-delay: var(--delay, 0s);
+}
+.walk-trail .step.l {
+  margin-top: -26px;
+}
+.walk-trail .step.r {
+  margin-top: 2px;
+}
+@keyframes footstep {
+  0% {
+    opacity: 0;
+    transform: rotate(90deg) scale(0.6);
+  }
+  4% {
+    opacity: var(--op, 0.9);
+    transform: rotate(90deg) scale(1);
+  }
+  45% {
+    opacity: calc(var(--op, 0.9) * 0.6);
+  }
+  70%,
+  100% {
+    opacity: 0;
+    transform: rotate(90deg) scale(1);
+  }
+}
+
+/* charity scroll trail */
+.charity-trail {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.charity-trail .tstep {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transition:
+    opacity 0.45s ease,
+    transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+  opacity: 0.12;
+}
+.charity-trail .tstep.on {
+  opacity: 1;
+}
+.charity-trail .tstep svg {
+  transition: color 0.4s ease;
+}
+
+/* ---------- Walk Info / 3D island ---------- */
+.island-stage {
+  position: relative;
+  touch-action: pan-y;
+}
+.island-canvas {
+  position: absolute;
+  inset: 0;
+  cursor: grab;
+}
+.island-canvas.is-grabbing {
+  cursor: grabbing;
+}
+.island-canvas canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+.island-labels {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: visible;
+}
+.pin-label {
+  position: absolute;
+  left: 0;
+  top: 0;
+  translate: -50% calc(-100% - 6px);
+  opacity: 0;
+  scale: 0.8;
+  transition:
+    opacity 0.35s ease,
+    scale 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  background: var(--navy);
+  color: #fff;
+  border-radius: 14px;
+  padding: 6px 11px;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.15;
+  white-space: nowrap;
+  box-shadow: 0 10px 24px -10px rgba(39, 33, 81, 0.6);
+}
+.pin-label::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -5px;
+  width: 10px;
+  height: 10px;
+  background: inherit;
+  transform: translateX(-50%) rotate(45deg);
+  border-radius: 2px;
+}
+.pin-label small {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 600;
+  opacity: 0.8;
+}
+.pin-label--main {
+  background: var(--lime);
+  color: var(--navy);
+  font-size: 13px;
+}
+.pin-label--minor {
+  background: #fff;
+  color: var(--navy);
+  font-size: 11px;
+  padding: 4px 9px;
+}
+.pin-label.is-on {
+  opacity: 1;
+  scale: 1;
+}
+.island-fallback {
+  position: absolute;
+  inset: 6%;
+}
+.island-fallback svg {
+  width: 100%;
+  height: 100%;
+}
+.compass-needle {
+  transform: rotate(var(--north, 0deg));
+}
+
+/* Guernsey / Herm toggle */
+.island-toggle {
+  position: relative;
+  display: inline-grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 6px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow:
+    0 20px 40px -18px rgba(39, 33, 81, 0.45),
+    inset 0 0 0 1px rgba(39, 33, 81, 0.08);
+}
+.island-toggle .thumb {
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  left: 6px;
+  width: calc(50% - 6px);
+  border-radius: 999px;
+  background: var(--navy);
+  box-shadow: 0 8px 20px -8px rgba(39, 33, 81, 0.8);
+  transition: transform 0.55s cubic-bezier(0.68, -0.4, 0.27, 1.4);
+}
+.island-toggle[data-active="herm"] .thumb {
+  transform: translateX(100%);
+}
+.island-toggle button {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 26px;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: var(--navy);
+  transition: color 0.35s ease;
+}
+.island-toggle button[aria-pressed="true"] {
+  color: #fff;
+}
+.island-toggle button .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 99px;
+  background: var(--lime);
+  box-shadow: 0 0 0 0 rgba(127, 184, 41, 0.7);
+}
+.island-toggle button[aria-pressed="true"] .dot {
+  animation: dotPulse 1.8s ease-out infinite;
+}
+@keyframes dotPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(127, 184, 41, 0.7);
+  }
+  100% {
+    box-shadow: 0 0 0 10px rgba(127, 184, 41, 0);
+  }
+}
+
+/* ---------- Marquee ---------- */
+.marquee-track {
+  display: flex;
+  width: max-content;
+}
+.marquee:hover .marquee-track {
+  animation-play-state: paused;
+}
+
+/* ---------- Scroll reveal (only hides things when JS is running) ---------- */
+.js [data-reveal] {
+  opacity: 0;
+  transform: translateY(36px);
+}
+.js [data-reveal="left"] {
+  transform: translateX(-46px);
+}
+.js [data-reveal="right"] {
+  transform: translateX(46px);
+}
+.js [data-reveal="zoom"] {
+  transform: scale(0.9);
+}
+.js [data-reveal].is-in {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 0.9s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: var(--d, 0s);
+}
+
+/* ---------- Charity logo badges (used until real logo files are added) ---------- */
+.logo-badge {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  line-height: 1;
+}
+.logo-badge--christian-aid {
+  background: #e3001b;
+  color: #fff;
+  font-family: "Archivo Black", sans-serif;
+  text-transform: lowercase;
+  clip-path: polygon(0 0, 82% 0, 100% 50%, 82% 100%, 0 100%);
+  padding-right: 12%;
+}
+.logo-badge--tumaini {
+  background: #fff;
+  color: #111;
+  font-family: Georgia, "Times New Roman", serif;
+  font-style: italic;
+}
+.logo-badge--epic {
+  background: #8e1c1f;
+  color: #f2b63d;
+  font-family: "Archivo Black", sans-serif;
+  border: 3px solid #f2b63d;
+  outline: 3px solid #8e1c1f;
+}
+.logo-badge--eleanor {
+  background: #fff;
+  color: #111;
+}
+
+/* ---------- Prose for the extra pages ---------- */
+.prose-waw p {
+  @apply mb-5 text-[1.05rem] leading-relaxed text-navy/80;
+}
+.prose-waw a {
+  @apply font-bold text-navy underline decoration-lime decoration-[3px] underline-offset-4 hover:decoration-navy;
+}
+.prose-waw strong {
+  @apply text-navy;
+}
+
+/* form fields */
+.field {
+  @apply w-full rounded-2xl border-2 border-navy/10 bg-white px-4 py-3.5 text-navy placeholder:text-navy/40 transition focus:border-lime focus:outline-none focus:ring-4 focus:ring-lime/20;
+}
+.field-label {
+  @apply mb-2 block text-sm font-extrabold text-navy;
+}
