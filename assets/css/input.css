@@ -98,7 +98,7 @@
     @apply bg-navy text-white shadow-soft hover:-translate-y-0.5 hover:bg-navy-600 hover:shadow-lift;
   }
   .btn-glass {
-    @apply border border-white/30 bg-white/10 text-white backdrop-blur-md hover:-translate-y-0.5 hover:bg-white/20;
+    @apply border border-white/30 bg-navy/30 text-white hover:-translate-y-0.5 hover:bg-white/20;
   }
   .btn-outline {
     @apply border-2 border-navy/15 bg-white text-navy hover:-translate-y-0.5 hover:border-navy hover:shadow-soft;
@@ -173,8 +173,8 @@
 .site-nav.is-scrolled .nav-shell,
 .site-nav.is-solid .nav-shell {
   background: rgba(255, 255, 255, 0.86);
-  backdrop-filter: blur(18px) saturate(1.6);
-  -webkit-backdrop-filter: blur(18px) saturate(1.6);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   box-shadow: 0 18px 40px -22px rgba(39, 33, 81, 0.45);
   border-color: rgba(39, 33, 81, 0.07);
   max-width: 76rem;
@@ -273,8 +273,7 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  opacity: 0.08;
-  mix-blend-mode: overlay;
+  opacity: 0.05; /* no blend mode — blending over the video was expensive */
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 .split-char {
@@ -350,7 +349,26 @@
   transition: color 0.4s ease;
 }
 
+/* ---------- Performance: pause CSS animations in sections you can't see ---------- */
+.is-offscreen,
+.is-offscreen * {
+  animation-play-state: paused !important;
+}
+
 /* ---------- Walk Info / 3D island ---------- */
+/* the island's gentle bob is CSS (free) instead of re-rendering 3D every frame */
+.island-float {
+  animation: islandFloat 7s ease-in-out infinite;
+}
+@keyframes islandFloat {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-12px);
+  }
+}
 .island-stage {
   position: relative;
   touch-action: pan-y;

@@ -73,9 +73,10 @@ window.WAW_CONFIG = {
     primaryButton: { label: "Register Now", href: "#enter" },
     secondaryButton: { label: "Walk info", href: "#walk-info" },
     video: {
-      // Swap these for real event footage any time (keep it short & small, ~5MB max).
+      // Swap these for real event footage any time — keep it short (~20s), 720p, no audio, under ~6MB.
+      // File names are CASE-SENSITIVE on GitHub Pages (hero.mp4 ≠ Hero.MP4).
       mp4: "assets/video/hero.mp4",
-      webm: "assets/video/hero.webm",
+      webm: "assets/video/hero.webm", // optional — delete this line if you only have the mp4
       poster: "assets/video/hero-poster.jpg",
     },
   },

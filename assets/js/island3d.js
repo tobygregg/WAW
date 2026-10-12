@@ -1,12 +1,13 @@
 /* =====================================================================
    island3d.js — the floating 3D island diorama in "Walk Information"
    ---------------------------------------------------------------------
-   Builds a stacked "block" island from the real coastline, draws the
-   walking route along the coast, drops pins, and flies islands in/out
-   when the Guernsey / Herm toggle is used.
+   LITE version: no real-time shadows, trees/houses batched into a few
+   draw calls, and the 3D scene only renders while something is moving
+   (fly-in, toggle, mouse tilt, drag). The gentle "floating" is done
+   with CSS, so an idle island costs basically nothing.
    Needs: window.THREE (assets/vendor/three.custom.min.js), window.gsap,
           window.WAW_ISLANDS (assets/data/island-outlines.js)
-   You shouldn't need to edit this — pins/routes live in config.js.
+   Pins/routes live in config.js — you shouldn't need to edit this.
    ===================================================================== */
 (function () {
   "use strict";
@@ -15,18 +16,17 @@
     navy: 0x272151,
     navyMid: 0x332b6b,
     navyDeep: 0x1b1640,
-    navyDeepest: 0x130f2e,
     lime: 0x7fb829,
     limeDark: 0x5f8d1c,
     sand: 0xf3ead2,
-    sandDark: 0xdccfa9,
     white: 0xffffff,
     tree: 0x3f7a1a,
     treeLight: 0x6aa324,
-    roof: 0x272151,
+    trunk: 0x6b4a2b,
   };
 
   const ISLAND_SIZE = { guernsey: 9.2, herm: 8.2 };
+  const BASE_ROT_Y = { guernsey: 2.1, herm: 0.5 };
   const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   /* ---------- tiny helpers ------------------------------------------ */
@@ -48,7 +48,7 @@
     const w = (maxLon - minLon) * k * 111320, h = (maxLat - minLat) * 110540;
     const s = size / Math.max(w, h);
     const toLocal = (ll) => { const r = raw(ll); return [r[0] * s, r[1] * s]; };
-    return { pts: outline.map(toLocal), toLocal, scale: s };
+    return { pts: outline.map(toLocal), toLocal };
   }
 
   function pointInPoly(x, y, pts) {
@@ -63,8 +63,7 @@
   function distToSeg(px, py, ax, ay, bx, by) {
     const dx = bx - ax, dy = by - ay;
     const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy || 1)));
-    const x = ax + t * dx, y = ay + t * dy;
-    return Math.hypot(px - x, py - y);
+    return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
   }
 
   function distToPolyline(px, py, pts, closed) {
@@ -97,10 +96,10 @@
     const n = pts.length;
     return pts.map((p, i) => {
       const a = pts[(i - 1 + n) % n], b = pts[(i + 1) % n];
-      let n1x = -(p[1] - a[1]), n1y = p[0] - a[0];
-      let n2x = -(b[1] - p[1]), n2y = b[0] - p[0];
+      const n1x = -(p[1] - a[1]), n1y = p[0] - a[0];
+      const n2x = -(b[1] - p[1]), n2y = b[0] - p[0];
       const l1 = Math.hypot(n1x, n1y) || 1, l2 = Math.hypot(n2x, n2y) || 1;
-      let nx = n1x / l1 + n2x / l2, ny = n1y / l1 + n2y / l2;
+      const nx = n1x / l1 + n2x / l2, ny = n1y / l1 + n2y / l2;
       const l = Math.hypot(nx, ny) || 1;
       return [p[0] + (nx / l) * d, p[1] + (ny / l) * d];
     });
@@ -139,25 +138,24 @@
   /* ---------- textures ------------------------------------------------ */
   function fieldsTexture(THREE, seed) {
     const c = document.createElement("canvas");
-    c.width = c.height = 512;
+    c.width = c.height = 256;
     const g = c.getContext("2d");
     const r = seeded(seed);
     const tints = ["#7fb829", "#86c02f", "#78ad25", "#8cc63a", "#72a622", "#93cb45"];
     g.fillStyle = "#7fb829";
-    g.fillRect(0, 0, 512, 512);
-    // patchwork fields with hedges
+    g.fillRect(0, 0, 256, 256);
     g.save();
-    g.translate(256, 256);
+    g.translate(128, 128);
     g.rotate(0.35);
-    for (let y = -420; y < 420; y += 46 + r() * 22) {
-      let x = -420;
-      const h = 44 + r() * 26;
-      while (x < 420) {
-        const w = 40 + r() * 70;
+    for (let y = -210; y < 210; y += 23 + r() * 11) {
+      let x = -210;
+      const h = 22 + r() * 13;
+      while (x < 210) {
+        const w = 20 + r() * 35;
         g.fillStyle = tints[Math.floor(r() * tints.length)];
         g.fillRect(x, y, w, h);
         g.strokeStyle = "rgba(47,92,18,0.55)";
-        g.lineWidth = 2.2;
+        g.lineWidth = 1.3;
         g.strokeRect(x, y, w, h);
         x += w;
       }
@@ -167,20 +165,19 @@
     t.wrapS = t.wrapT = THREE.RepeatWrapping;
     t.repeat.set(0.16, 0.16);
     t.colorSpace = THREE.SRGBColorSpace;
-    t.anisotropy = 4;
     return t;
   }
 
   function shadowTexture(THREE) {
     const c = document.createElement("canvas");
-    c.width = c.height = 256;
+    c.width = c.height = 128;
     const g = c.getContext("2d");
-    const grd = g.createRadialGradient(128, 128, 10, 128, 128, 128);
-    grd.addColorStop(0, "rgba(39,33,81,0.38)");
-    grd.addColorStop(0.55, "rgba(39,33,81,0.12)");
+    const grd = g.createRadialGradient(64, 64, 4, 64, 64, 64);
+    grd.addColorStop(0, "rgba(39,33,81,0.34)");
+    grd.addColorStop(0.55, "rgba(39,33,81,0.1)");
     grd.addColorStop(1, "rgba(39,33,81,0)");
     g.fillStyle = grd;
-    g.fillRect(0, 0, 256, 256);
+    g.fillRect(0, 0, 128, 128);
     const t = new THREE.CanvasTexture(c);
     t.colorSpace = THREE.SRGBColorSpace;
     return t;
@@ -191,60 +188,48 @@
     const proj = projectOutline(outline, ISLAND_SIZE[key] || 9);
     const shape = new THREE.Shape(proj.pts.map((p) => new THREE.Vector2(p[0], p[1])));
     const root = new THREE.Group();   // moved by fly-in / fly-out
-    const floater = new THREE.Group(); // bobbing
+    const floater = new THREE.Group(); // spin / tilt
     root.add(floater);
 
-    const std = (color, extra) => new THREE.MeshStandardMaterial(Object.assign({ color, roughness: 0.9, metalness: 0, flatShading: true }, extra || {}));
+    // Lambert = cheaper lighting than Standard and looks great flat-shaded
+    const mat = (color, extra) => new THREE.MeshLambertMaterial(Object.assign({ color, flatShading: true }, extra || {}));
 
-    // layers: [top Y, depth, horizontal scale, capMaterial, sideMaterial, bevel]
-    const grassTex = fieldsTexture(THREE, key === "herm" ? 77 : 1970);
+    // stacked "block" layers: [top Y, depth, horizontal scale, cap, side, bevel]
     const layers = [
-      { top: 0, depth: 0.26, s: 1, cap: std(COLORS.white, { map: grassTex }), side: std(COLORS.limeDark), bevel: 0.05 },
-      { top: -0.31, depth: 0.22, s: 1.0, cap: std(COLORS.sand), side: std(COLORS.sand), bevel: 0.03 },
-      { top: -0.56, depth: 0.7, s: 0.985, cap: std(COLORS.navy), side: std(COLORS.navy), bevel: 0.02 },
-      { top: -1.28, depth: 0.55, s: 0.86, cap: std(COLORS.navyMid), side: std(COLORS.navyMid), bevel: 0.02 },
-      { top: -1.85, depth: 0.45, s: 0.66, cap: std(COLORS.navyDeep), side: std(COLORS.navyDeep), bevel: 0.02 },
-      { top: -2.32, depth: 0.38, s: 0.42, cap: std(COLORS.navyDeepest), side: std(COLORS.navyDeepest), bevel: 0.02 },
+      { top: 0, depth: 0.26, s: 1, cap: mat(COLORS.white, { map: fieldsTexture(THREE, key === "herm" ? 77 : 1970) }), side: mat(COLORS.limeDark), bevel: 0.05 },
+      { top: -0.31, depth: 0.22, s: 1, cap: mat(COLORS.sand), side: mat(COLORS.sand), bevel: 0 },
+      { top: -0.53, depth: 0.85, s: 0.985, cap: mat(COLORS.navy), side: mat(COLORS.navy), bevel: 0 },
+      { top: -1.38, depth: 0.7, s: 0.78, cap: mat(COLORS.navyMid), side: mat(COLORS.navyMid), bevel: 0 },
+      { top: -2.08, depth: 0.5, s: 0.5, cap: mat(COLORS.navyDeep), side: mat(COLORS.navyDeep), bevel: 0 },
     ];
-    layers.forEach((L, i) => {
+    layers.forEach((L) => {
       const geo = new THREE.ExtrudeGeometry(shape, {
         depth: L.depth,
-        bevelEnabled: true,
+        bevelEnabled: L.bevel > 0,
         bevelThickness: L.bevel,
         bevelSize: L.bevel,
-        bevelSegments: i === 0 ? 2 : 1,
+        bevelSegments: 1,
         curveSegments: 1,
       });
       geo.rotateX(-Math.PI / 2);
       const mesh = new THREE.Mesh(geo, [L.cap, L.side]);
       mesh.scale.set(L.s, 1, L.s);
       mesh.position.y = L.top - L.depth - L.bevel;
-      mesh.castShadow = i > 1;
-      mesh.receiveShadow = i === 0;
       floater.add(mesh);
     });
 
-    // world helper: shape (x, north) -> world (x, y, -north)
+    // shape (x, north) -> world (x, y, -north)
     const W = (p, y) => new THREE.Vector3(p[0], y, -p[1]);
 
-    // ---- route
+    // ---- route (drawn on with setDrawRange)
     const route = buildRoutePoints(proj, islandCfg.map.route);
     const curve = new THREE.CatmullRomCurve3(route.pts.map((p) => W(p, 0.05)), route.closed, "centripetal");
-    const segs = Math.max(200, route.pts.length * 3);
-    const tubeGeo = new THREE.TubeGeometry(curve, segs, 0.075, 6, route.closed);
-    const tubeMat = new THREE.MeshStandardMaterial({ color: COLORS.white, emissive: 0xffffff, emissiveIntensity: 0.35, roughness: 0.4 });
-    const tube = new THREE.Mesh(tubeGeo, tubeMat);
-    tube.castShadow = true;
+    const segs = Math.max(140, route.pts.length * 2);
+    const tubeGeo = new THREE.TubeGeometry(curve, segs, 0.075, 5, route.closed);
+    const tube = new THREE.Mesh(tubeGeo, new THREE.MeshBasicMaterial({ color: COLORS.white }));
     const totalIdx = tubeGeo.index.count;
     tubeGeo.setDrawRange(0, 0);
     floater.add(tube);
-
-    // little navy "walkers" travelling along the route
-    const walkerCount = route.closed ? 12 : 10;
-    const walkers = new THREE.InstancedMesh(new THREE.SphereGeometry(0.085, 10, 8), std(COLORS.navy, { flatShading: false, roughness: 0.5 }), walkerCount);
-    walkers.castShadow = true;
-    walkers.visible = false;
-    floater.add(walkers);
 
     // ---- pins
     const pins = [];
@@ -254,90 +239,95 @@
       const main = pin.type === "main", alt = pin.type === "alt";
       const h = main ? 1.05 : alt ? 0.85 : 0.5;
       const headR = main ? 0.2 : alt ? 0.16 : 0.1;
-      const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.028, h, 8), std(COLORS.navy, { flatShading: false }));
+      const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.028, h, 6), mat(COLORS.navy, { flatShading: false }));
       stick.position.y = h / 2;
-      const head = new THREE.Mesh(new THREE.SphereGeometry(headR, 20, 14), std(main ? COLORS.lime : alt ? COLORS.white : COLORS.navy, { flatShading: false, roughness: 0.35, emissive: main ? COLORS.lime : 0x000000, emissiveIntensity: main ? 0.25 : 0 }));
+      const head = new THREE.Mesh(new THREE.SphereGeometry(headR, 14, 10), mat(main ? COLORS.lime : alt ? COLORS.white : COLORS.navy, { flatShading: false }));
       head.position.y = h;
-      head.castShadow = stick.castShadow = true;
-      const ring = new THREE.Mesh(new THREE.RingGeometry(0.12, 0.2, 32), new THREE.MeshBasicMaterial({ color: main ? COLORS.lime : COLORS.navy, transparent: true, opacity: 0.8, side: THREE.DoubleSide }));
+      const ring = new THREE.Mesh(new THREE.RingGeometry(0.12, 0.22, 24), new THREE.MeshBasicMaterial({ color: main ? COLORS.lime : COLORS.navy, transparent: true, opacity: 0.55, side: THREE.DoubleSide }));
       ring.rotation.x = -Math.PI / 2;
       ring.position.y = 0.025;
       g.add(stick, head, ring);
       g.position.copy(W(p, 0));
       g.scale.setScalar(0.001);
       floater.add(g);
-      pins.push({ cfg: pin, group: g, ring, anchor: new THREE.Vector3(0, h + headR + 0.1, 0) });
+      pins.push({ cfg: pin, group: g, anchor: new THREE.Vector3(0, h + headR + 0.1, 0) });
     });
 
-    // ---- trees & houses (deterministic scatter)
+    // ---- trees & houses — batched with InstancedMesh (5 draw calls total)
     const rand = seeded(key === "herm" ? 42 : 1970);
-    const routePts = route.pts;
     const pinPts = (islandCfg.map.pins || []).map((p) => proj.toLocal(p.at));
-    const treeGeo = new THREE.ConeGeometry(0.17, 0.48, 6);
-    const treeGeo2 = new THREE.IcosahedronGeometry(0.17, 0);
-    const trunkGeo = new THREE.CylinderGeometry(0.035, 0.035, 0.14, 5);
-    const houseGeo = new THREE.BoxGeometry(0.3, 0.2, 0.22);
-    const roofGeo = new THREE.ConeGeometry(0.24, 0.17, 4);
-    const treeMat = std(COLORS.tree), treeMat2 = std(COLORS.treeLight), trunkMat = std(0x6b4a2b);
-    const houseMat = std(COLORS.white), roofMat = std(COLORS.roof);
     const area = Math.abs(proj.pts.reduce((a, p, i) => { const q = proj.pts[(i + 1) % proj.pts.length]; return a + p[0] * q[1] - q[0] * p[1]; }, 0) / 2);
-    const target = Math.round(area * (key === "herm" ? 2.1 : 1.15));
+    const target = Math.round(area * (key === "herm" ? 1.6 : 0.85));
+    const items = { cone: [], round: [], trunk: [], house: [], roof: [] };
     let placed = 0, tries = 0;
-    const deco = new THREE.Group();
     while (placed < target && tries < target * 30) {
       tries++;
       const x = (rand() - 0.5) * 10, y = (rand() - 0.5) * 10;
       if (!pointInPoly(x, y, proj.pts)) continue;
       if (distToPolyline(x, y, proj.pts, true) < 0.32) continue;
-      if (distToPolyline(x, y, routePts, route.closed) < 0.34) continue;
+      if (distToPolyline(x, y, route.pts, route.closed) < 0.34) continue;
       if (pinPts.some((p) => Math.hypot(p[0] - x, p[1] - y) < 0.55)) continue;
-      const isHouse = rand() < 0.28;
-      const g = new THREE.Group();
-      if (isHouse) {
-        const b = new THREE.Mesh(houseGeo, houseMat); b.position.y = 0.1;
-        const r = new THREE.Mesh(roofGeo, roofMat); r.position.y = 0.285; r.rotation.y = Math.PI / 4;
-        r.scale.set(1, 1, 0.75);
-        b.castShadow = r.castShadow = true;
-        g.add(b, r);
+      const pos = W([x, y], 0), sc = 0.75 + rand() * 0.55, rot = rand() * Math.PI;
+      if (rand() < 0.28) {
+        items.house.push({ pos, sc, rot, y: 0.1 });
+        items.roof.push({ pos, sc, rot: rot + Math.PI / 4, y: 0.285, sz: 0.75 });
+      } else if (rand() < 0.4) {
+        items.round.push({ pos, sc, rot, y: 0.27 });
+        items.trunk.push({ pos, sc, rot, y: 0.07 });
       } else {
-        const round = rand() < 0.4;
-        const t = new THREE.Mesh(round ? treeGeo2 : treeGeo, round ? treeMat2 : treeMat);
-        t.position.y = round ? 0.27 : 0.34;
-        const tr = new THREE.Mesh(trunkGeo, trunkMat); tr.position.y = 0.07;
-        t.castShadow = true;
-        g.add(t, tr);
+        items.cone.push({ pos, sc, rot, y: 0.34 });
+        items.trunk.push({ pos, sc, rot, y: 0.07 });
       }
-      const sc = 0.75 + rand() * 0.55;
-      g.scale.setScalar(sc);
-      g.rotation.y = rand() * Math.PI;
-      g.position.copy(W([x, y], 0));
-      g.userData.baseScale = sc;
-      deco.add(g);
       placed++;
     }
-    floater.add(deco);
-
-    // ---- clouds
-    const clouds = new THREE.Group();
-    const cloudMat = std(COLORS.white, { roughness: 1 });
-    const cloudSpots = [[-4.6, 1.6, -1.5], [4.4, 2.1, 0.8], [1.2, 1.9, -3.2]];
-    cloudSpots.forEach((c, i) => {
-      const g = new THREE.Group();
-      [[0, 0, 0, 0.42], [0.42, -0.06, 0.1, 0.32], [-0.4, -0.08, 0, 0.3], [0.1, 0.18, -0.05, 0.3]].forEach(([x, y, z, r]) => {
-        const m = new THREE.Mesh(new THREE.IcosahedronGeometry(r, 0), cloudMat);
-        m.position.set(x, y, z);
-        g.add(m);
+    const decoDefs = {
+      cone: [new THREE.ConeGeometry(0.17, 0.48, 6), mat(COLORS.tree)],
+      round: [new THREE.IcosahedronGeometry(0.17, 0), mat(COLORS.treeLight)],
+      trunk: [new THREE.CylinderGeometry(0.035, 0.035, 0.14, 5), mat(COLORS.trunk)],
+      house: [new THREE.BoxGeometry(0.3, 0.2, 0.22), mat(COLORS.white)],
+      roof: [new THREE.ConeGeometry(0.24, 0.17, 4), mat(COLORS.navy)],
+    };
+    const deco = [];
+    const dummy = new THREE.Object3D();
+    Object.keys(items).forEach((k) => {
+      const list = items[k];
+      if (!list.length) return;
+      const im = new THREE.InstancedMesh(decoDefs[k][0], decoDefs[k][1], list.length);
+      floater.add(im);
+      deco.push({ im, list });
+    });
+    function setDecoScale(f) {
+      deco.forEach(({ im, list }) => {
+        list.forEach((d, i) => {
+          const s = Math.max(0.001, d.sc * f);
+          dummy.position.set(d.pos.x, d.y * s, d.pos.z);
+          dummy.rotation.set(0, d.rot, 0);
+          dummy.scale.set(s, s, s * (d.sz || 1));
+          dummy.updateMatrix();
+          im.setMatrixAt(i, dummy.matrix);
+        });
+        im.instanceMatrix.needsUpdate = true;
       });
-      g.position.set(c[0], c[1], c[2]);
-      g.userData = { base: c, phase: i * 2.1 };
-      clouds.add(g);
+    }
+    setDecoScale(0.001);
+
+    // ---- two static clouds (merged into one instanced mesh)
+    const puffs = [];
+    [[-4.6, 1.6, -1.5], [4.4, 2.1, 0.8]].forEach((c) => {
+      [[0, 0, 0, 0.42], [0.42, -0.06, 0.1, 0.32], [-0.4, -0.08, 0, 0.3], [0.1, 0.18, -0.05, 0.3]].forEach(([x, y, z, r]) => puffs.push([c[0] + x, c[1] + y, c[2] + z, r]));
+    });
+    const clouds = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 0), mat(COLORS.white), puffs.length);
+    puffs.forEach(([x, y, z, r], i) => {
+      dummy.position.set(x, y, z); dummy.rotation.set(0, i, 0); dummy.scale.setScalar(r); dummy.updateMatrix();
+      clouds.setMatrixAt(i, dummy.matrix);
     });
     root.add(clouds);
 
     return {
-      key, root, floater, tube, tubeGeo, totalIdx, curve, walkers, walkerCount, pins, deco, clouds,
+      key, root, floater, tubeGeo, totalIdx, pins, setDecoScale,
       routeProgress: { v: 0 },
       pinScale: { v: 0 },
+      decoScale: { v: 0 },
     };
   }
 
@@ -348,8 +338,7 @@
     const route = buildRoutePoints(proj, icfg.map.route);
     const f = (p) => `${(p[0] * 40 + 220).toFixed(1)},${(-p[1] * 40 + 220).toFixed(1)}`;
     const pins = (icfg.map.pins || []).map((pin) => {
-      const p = proj.toLocal(pin.at);
-      const [x, y] = f(p).split(",");
+      const [x, y] = f(proj.toLocal(pin.at)).split(",");
       return `<g transform="translate(${x},${y})"><circle r="${pin.type === "main" ? 9 : 6}" fill="${pin.type === "main" ? "#7fb829" : "#272151"}" stroke="#fff" stroke-width="3"/><text x="12" y="4" font-size="13" font-weight="700" fill="#272151">${pin.label}</text></g>`;
     }).join("");
     container.querySelector(".island-fallback")?.remove();
@@ -372,50 +361,41 @@
     const canvasWrap = container.querySelector(".island-canvas") || container;
     const labelLayer = container.querySelector(".island-labels");
 
-    // WebGL check
+    const dpr = window.devicePixelRatio || 1;
+    const small = window.innerWidth < 768;
     let renderer;
     try {
       if (!THREE) throw new Error("three missing");
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
+      // high-res screens don't need antialiasing — skipping it is a big saving on phones
+      renderer = new THREE.WebGLRenderer({ antialias: dpr < 1.5, alpha: true, powerPreference: "low-power" });
     } catch (e) {
       render2D(container, outlines, cfg, current);
       container.classList.add("is-fallback");
       return { show: (k) => render2D(container, outlines, cfg, (current = k)), playIntro() {}, fallback: true };
     }
 
-    const small = window.innerWidth < 768;
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, small ? 1.6 : 2));
+    renderer.setPixelRatio(Math.min(dpr, small ? 1.5 : 1.75));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.05;
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFShadowMap;
     canvasWrap.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 100);
-
-    scene.add(new THREE.HemisphereLight(0xffffff, 0x3b3470, 1.35));
-    const sun = new THREE.DirectionalLight(0xfff4dc, 2.1);
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x3b3470, 1.5));
+    const sun = new THREE.DirectionalLight(0xfff4dc, 2.0);
     sun.position.set(-6, 12, 7);
-    sun.castShadow = true;
-    sun.shadow.mapSize.set(small ? 768 : 1024, small ? 768 : 1024);
-    const sc = sun.shadow.camera;
-    sc.left = -7; sc.right = 7; sc.top = 7; sc.bottom = -7; sc.near = 1; sc.far = 40;
-    sun.shadow.bias = -0.0008;
-    sun.shadow.normalBias = 0.02;
     scene.add(sun);
     const rim = new THREE.DirectionalLight(0xb9f06a, 0.6);
     rim.position.set(6, 3, -6);
     scene.add(rim);
 
-    // soft shadow on the "ground"
+    // soft fake shadow under the island
     const shadow = new THREE.Mesh(new THREE.PlaneGeometry(13, 9), new THREE.MeshBasicMaterial({ map: shadowTexture(THREE), transparent: true, depthWrite: false }));
     shadow.rotation.x = -Math.PI / 2;
     shadow.position.y = -4.4;
     scene.add(shadow);
 
-    // islands
     const islands = {};
     Object.keys(cfg.walkInfo.islands).forEach((k) => {
       if (!outlines[k]) return;
@@ -425,7 +405,7 @@
       islands[k] = isl;
     });
 
-    // labels (HTML overlay)
+    // HTML labels over the pins
     const labelEls = {};
     Object.values(islands).forEach((isl) => {
       labelEls[isl.key] = isl.pins.map((p) => {
@@ -433,65 +413,72 @@
         el.className = `pin-label pin-label--${p.cfg.type || "minor"}`;
         el.innerHTML = `<span>${p.cfg.label}</span>${p.cfg.sub ? `<small>${p.cfg.sub}</small>` : ""}`;
         labelLayer && labelLayer.appendChild(el);
-        return el;
+        return { el, w: 0, h: 0, on: false };
       });
     });
 
-    const BASE_ROT_Y = { guernsey: 2.1, herm: 0.5 };
     const tilt = { x: 0, y: 0, tx: 0, ty: 0, spin: 0, spinV: 0 };
+    let stageW = 1, stageH = 1;
 
-    // sizing
     function resize() {
       const w = canvasWrap.clientWidth, h = canvasWrap.clientHeight;
       if (!w || !h) return;
+      stageW = w; stageH = h;
       renderer.setSize(w, h, false);
       camera.aspect = w / h;
-      const a = w / h;
-      const far = a < 1.1 ? 1.5 : 1.16;
+      const far = w / h < 1.1 ? 1.5 : 1.16;
       camera.position.set(0, 11 * far, 10.4 * far);
       camera.lookAt(0, -0.6, 0);
       camera.updateProjectionMatrix();
+      labelsMeasured = false;
+      wake(50);
     }
+
+    /* ---- on-demand rendering: only draw while something moves ---- */
+    let visible = false, raf = 0, activeUntil = 0, labelsMeasured = false;
+    function wake(ms) {
+      activeUntil = Math.max(activeUntil, performance.now() + ms);
+      if (visible && !raf && !document.hidden) raf = requestAnimationFrame(frame);
+    }
+
+    // mouse tilt + drag spin (mouse only — touch keeps page scrolling)
+    let dragging = false, lastX = 0;
+    if (window.matchMedia("(hover: hover)").matches && !prefersReduced) {
+      container.addEventListener("pointermove", (e) => {
+        if (e.pointerType !== "mouse") return;
+        const r = container.getBoundingClientRect();
+        tilt.tx = ((e.clientY - r.top) / r.height - 0.5) * 0.18;
+        tilt.ty = ((e.clientX - r.left) / r.width - 0.5) * 0.35;
+        if (dragging) { tilt.spinV += (e.clientX - lastX) * 0.0022; lastX = e.clientX; }
+        wake(900);
+      });
+      container.addEventListener("pointerleave", () => { tilt.tx = tilt.ty = 0; dragging = false; wake(1500); });
+      canvasWrap.addEventListener("pointerdown", (e) => { if (e.pointerType === "mouse") { dragging = true; lastX = e.clientX; canvasWrap.classList.add("is-grabbing"); } });
+      window.addEventListener("pointerup", () => { if (dragging) { dragging = false; canvasWrap.classList.remove("is-grabbing"); wake(2500); } });
+    }
+
     const ro = new ResizeObserver(resize);
     ro.observe(canvasWrap);
     resize();
 
-    // pointer tilt + drag spin (mouse only — touch keeps page scrolling)
-    let dragging = false, lastX = 0;
-    container.addEventListener("pointermove", (e) => {
-      const r = container.getBoundingClientRect();
-      tilt.tx = ((e.clientY - r.top) / r.height - 0.5) * 0.18;
-      tilt.ty = ((e.clientX - r.left) / r.width - 0.5) * 0.35;
-      if (dragging) { tilt.spinV += (e.clientX - lastX) * 0.0022; lastX = e.clientX; }
-    });
-    container.addEventListener("pointerleave", () => { tilt.tx = tilt.ty = 0; dragging = false; });
-    canvasWrap.addEventListener("pointerdown", (e) => { if (e.pointerType === "mouse") { dragging = true; lastX = e.clientX; canvasWrap.classList.add("is-grabbing"); } });
-    window.addEventListener("pointerup", () => { dragging = false; canvasWrap.classList.remove("is-grabbing"); });
-
-    // ---- animations
-    const tl = () => (gsap ? gsap : null);
-
+    /* ---- animations ---- */
     function revealDetails(isl, delay) {
-      const g = tl();
-      isl.routeProgress.v = 0;
-      isl.pinScale.v = 0;
-      isl.walkers.visible = false;
-      if (!g || prefersReduced) {
-        isl.routeProgress.v = 1; isl.pinScale.v = 1; isl.walkers.visible = true;
+      isl.routeProgress.v = 0; isl.pinScale.v = 0; isl.decoScale.v = 0;
+      if (!gsap || prefersReduced) {
+        isl.routeProgress.v = 1; isl.pinScale.v = 1; isl.decoScale.v = 1;
+        isl.setDecoScale(1);
+        wake(100);
         return;
       }
-      g.to(isl.pinScale, { v: 1, duration: 0.7, delay: delay, ease: "back.out(2.2)" });
-      g.to(isl.routeProgress, { v: 1, duration: 2.2, delay: delay + 0.2, ease: "power2.inOut", onComplete: () => (isl.walkers.visible = true) });
-      isl.deco.children.forEach((d, i) => {
-        d.scale.setScalar(0.001);
-        g.to(d.scale, { x: d.userData.baseScale, y: d.userData.baseScale, z: d.userData.baseScale, duration: 0.5, delay: delay * 0.6 + i * 0.012, ease: "back.out(2.5)" });
-      });
+      gsap.to(isl.pinScale, { v: 1, duration: 0.7, delay, ease: "back.out(2.2)" });
+      gsap.to(isl.decoScale, { v: 1, duration: 0.9, delay: delay * 0.6, ease: "back.out(1.8)", onUpdate: () => isl.setDecoScale(isl.decoScale.v) });
+      gsap.to(isl.routeProgress, { v: 1, duration: 2, delay: delay + 0.2, ease: "power2.inOut" });
+      wake((delay + 2.8) * 1000);
     }
 
     function flyIn(isl, from) {
-      const g = tl();
       isl.root.visible = true;
-      if (!g || prefersReduced) {
+      if (!gsap || prefersReduced) {
         isl.root.position.set(0, 0, 0); isl.root.rotation.set(0, 0, 0); isl.root.scale.setScalar(1);
         revealDetails(isl, 0);
         return;
@@ -500,18 +487,18 @@
       isl.root.position.set(start.x, start.y, start.z);
       isl.root.rotation.set(0.25, start.ry, 0.15);
       isl.root.scale.setScalar(0.35);
-      g.to(isl.root.position, { x: 0, y: 0, z: 0, duration: 1.4, ease: "power3.out" });
-      g.to(isl.root.rotation, { x: 0, y: 0, z: 0, duration: 1.7, ease: "power3.out" });
-      g.to(isl.root.scale, { x: 1, y: 1, z: 1, duration: 1.3, ease: "back.out(1.25)" });
-      revealDetails(isl, 0.9);
+      gsap.to(isl.root.position, { x: 0, y: 0, z: 0, duration: 1.3, ease: "power3.out" });
+      gsap.to(isl.root.rotation, { x: 0, y: 0, z: 0, duration: 1.5, ease: "power3.out" });
+      gsap.to(isl.root.scale, { x: 1, y: 1, z: 1, duration: 1.2, ease: "back.out(1.25)" });
+      revealDetails(isl, 0.8);
     }
 
     function flyOut(isl) {
-      const g = tl();
-      if (!g || prefersReduced) { isl.root.visible = false; return; }
-      g.to(isl.root.position, { x: -13, y: 3, z: -4, duration: 0.85, ease: "power3.in" });
-      g.to(isl.root.rotation, { y: -1.6, z: -0.2, duration: 0.85, ease: "power2.in" });
-      g.to(isl.root.scale, { x: 0.3, y: 0.3, z: 0.3, duration: 0.85, ease: "power2.in", onComplete: () => (isl.root.visible = false) });
+      if (!gsap || prefersReduced) { isl.root.visible = false; return; }
+      gsap.to(isl.root.position, { x: -13, y: 3, z: -4, duration: 0.75, ease: "power3.in" });
+      gsap.to(isl.root.rotation, { y: -1.6, z: -0.2, duration: 0.75, ease: "power2.in" });
+      gsap.to(isl.root.scale, { x: 0.3, y: 0.3, z: 0.3, duration: 0.75, ease: "power2.in", onComplete: () => (isl.root.visible = false) });
+      wake(900);
     }
 
     let introDone = false;
@@ -526,81 +513,39 @@
       const prev = islands[current];
       current = key;
       if (!introDone) { introDone = true; flyIn(islands[key], "below"); return; }
+      gsap && gsap.killTweensOf([prev.root.position, prev.root.rotation, prev.root.scale]);
       flyOut(prev);
-      setTimeout(() => flyIn(islands[key], "side"), prefersReduced ? 0 : 380);
+      setTimeout(() => flyIn(islands[key], "side"), prefersReduced ? 0 : 340);
     }
 
-    // ---- render loop (only while on screen)
-    let visible = false, raf = 0;
-    const t0 = performance.now();
-    const dummy = new THREE.Object3D();
+    /* ---- frame ---- */
     const v = new THREE.Vector3();
-
     function frame() {
-      raf = requestAnimationFrame(frame);
-      const t = (performance.now() - t0) / 1000;
-      tilt.x += (tilt.tx - tilt.x) * 0.05;
-      tilt.y += (tilt.ty - tilt.y) * 0.05;
+      raf = 0;
+      tilt.x += (tilt.tx - tilt.x) * 0.08;
+      tilt.y += (tilt.ty - tilt.y) * 0.08;
       tilt.spin += tilt.spinV;
-      tilt.spinV *= 0.92;
-      if (!dragging) tilt.spin *= 0.985;
+      tilt.spinV *= 0.9;
+      if (!dragging) tilt.spin *= 0.97;
 
       Object.values(islands).forEach((isl) => {
         if (!isl.root.visible) return;
-        const f = isl.floater;
-        if (!prefersReduced) {
-          f.position.y = Math.sin(t * 1.1) * 0.16;
-          f.rotation.z = Math.sin(t * 0.7) * 0.025;
-          f.rotation.x = tilt.x + Math.cos(t * 0.6) * 0.02;
-        }
-        f.rotation.y = (BASE_ROT_Y[isl.key] || 0.5) + tilt.y + tilt.spin;
-
-        // route drawing
-        const idx = Math.floor(isl.totalIdx * isl.routeProgress.v / 3) * 3;
-        isl.tubeGeo.setDrawRange(0, idx);
-
-        // pins
-        isl.pins.forEach((p, i) => {
-          p.group.scale.setScalar(Math.max(0.001, isl.pinScale.v));
-          const pulse = (t * 0.8 + i * 0.3) % 1;
-          p.ring.scale.setScalar(1 + pulse * 1.8);
-          p.ring.material.opacity = 0.85 * (1 - pulse);
-        });
-
-        // walkers
-        if (isl.walkers.visible) {
-          for (let i = 0; i < isl.walkerCount; i++) {
-            let u = (i / isl.walkerCount + t * 0.018) % 1;
-            if (!isl.curve.closed) u = 0.5 - 0.5 * Math.cos(((i / isl.walkerCount) + t * 0.02) * Math.PI * 2) * 0.98 + 0.01; // there-and-back
-            isl.curve.getPointAt(Math.min(0.999, Math.max(0, u)), v);
-            dummy.position.set(v.x, v.y + 0.07 + Math.abs(Math.sin(t * 7 + i)) * 0.05, v.z);
-            dummy.scale.setScalar(1);
-            dummy.updateMatrix();
-            isl.walkers.setMatrixAt(i, dummy.matrix);
-          }
-          isl.walkers.instanceMatrix.needsUpdate = true;
-        }
-
-        // clouds drift
-        isl.clouds.children.forEach((c) => {
-          const b = c.userData.base;
-          c.position.x = b[0] + Math.sin(t * 0.25 + c.userData.phase) * 0.5;
-          c.position.y = b[1] + Math.sin(t * 0.6 + c.userData.phase) * 0.12;
-        });
+        isl.floater.rotation.x = tilt.x;
+        isl.floater.rotation.y = (BASE_ROT_Y[isl.key] || 0.5) + tilt.y + tilt.spin;
+        isl.tubeGeo.setDrawRange(0, Math.floor((isl.totalIdx * isl.routeProgress.v) / 3) * 3);
+        isl.pins.forEach((p) => p.group.scale.setScalar(Math.max(0.001, isl.pinScale.v)));
       });
-
-      // shadow breathes with the float
       const cur = islands[current];
-      const fy = cur ? cur.floater.position.y : 0;
-      shadow.material.opacity = cur && cur.root.visible ? 0.9 - fy * 0.8 : 0.4;
-      shadow.scale.setScalar((cur ? cur.root.scale.x : 1) * (1 - fy * 0.15));
+      shadow.scale.setScalar(cur ? cur.root.scale.x : 1);
 
       renderer.render(scene, camera);
       updateLabels();
       updateCompass();
+
+      const settling = Math.abs(tilt.tx - tilt.x) + Math.abs(tilt.ty - tilt.y) + Math.abs(tilt.spinV) + Math.abs(tilt.spin) > 0.002;
+      if (visible && !document.hidden && (performance.now() < activeUntil || settling || dragging)) raf = requestAnimationFrame(frame);
     }
 
-    // compass needle follows the island's north
     const compass = container.querySelector("[data-compass]");
     const n0 = new THREE.Vector3(), n1 = new THREE.Vector3();
     function updateCompass() {
@@ -609,42 +554,37 @@
       n0.set(0, 0, 0); n1.set(0, 0, -3);
       isl.floater.localToWorld(n0); isl.floater.localToWorld(n1);
       n0.project(camera); n1.project(camera);
-      const ang = Math.atan2(n1.x - n0.x, n1.y - n0.y) * (180 / Math.PI);
-      compass.style.setProperty("--north", `${ang.toFixed(1)}deg`);
+      compass.style.setProperty("--north", `${(Math.atan2(n1.x - n0.x, n1.y - n0.y) * 57.2958).toFixed(1)}deg`);
     }
 
     function updateLabels() {
       if (!labelLayer) return;
-      const w = canvasWrap.clientWidth, h = canvasWrap.clientHeight;
+      if (!labelsMeasured) {
+        // measure once (reading sizes every frame causes layout jank)
+        Object.values(labelEls).forEach((arr) => arr.forEach((l) => { l.w = l.el.offsetWidth; l.h = l.el.offsetHeight; }));
+        labelsMeasured = true;
+      }
       Object.values(islands).forEach((isl) => {
-        const els = labelEls[isl.key];
         const on = isl.root.visible && isl.pinScale.v > 0.6 && isl.root.scale.x > 0.95 && Math.abs(isl.root.position.x) < 0.5;
         isl.pins.forEach((p, i) => {
-          const el = els[i];
-          if (!on) { el.classList.remove("is-on"); return; }
+          const l = labelEls[isl.key][i];
+          if (!on) { if (l.on) { l.el.classList.remove("is-on"); l.on = false; } return; }
           v.copy(p.anchor);
           p.group.localToWorld(v);
           v.project(camera);
-          const x = Math.min(w - el.offsetWidth / 2 - 4, Math.max(el.offsetWidth / 2 + 4, (v.x * 0.5 + 0.5) * w));
-          const y = Math.max(el.offsetHeight + 8, (-v.y * 0.5 + 0.5) * h);
-          el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
-          el.classList.add("is-on");
+          const x = Math.min(stageW - l.w / 2 - 4, Math.max(l.w / 2 + 4, (v.x * 0.5 + 0.5) * stageW));
+          const y = Math.max(l.h + 8, (-v.y * 0.5 + 0.5) * stageH);
+          l.el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
+          if (!l.on) { l.el.classList.add("is-on"); l.on = true; }
         });
       });
     }
 
-    const io = new IntersectionObserver((entries) => {
-      entries.forEach((e) => {
-        visible = e.isIntersecting;
-        if (visible && !raf) frame();
-        if (!visible && raf) { cancelAnimationFrame(raf); raf = 0; }
-      });
-    }, { threshold: 0 });
-    io.observe(container);
-    document.addEventListener("visibilitychange", () => {
-      if (document.hidden && raf) { cancelAnimationFrame(raf); raf = 0; }
-      else if (!document.hidden && visible && !raf) frame();
-    });
+    new IntersectionObserver(([e]) => {
+      visible = e.isIntersecting;
+      if (visible) wake(100);
+    }).observe(container);
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) wake(100); });
 
     container.classList.add("is-3d");
     return { show, playIntro, get current() { return current; } };

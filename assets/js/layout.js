@@ -262,6 +262,15 @@
     els.forEach((e) => io.observe(e));
   }
 
+  /* ---------- pause looping CSS animations in sections you can't see -- */
+  function pauseOffscreen() {
+    if (!("IntersectionObserver" in window)) return;
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((e) => e.target.classList.toggle("is-offscreen", !e.isIntersecting));
+    }, { rootMargin: "150px 0px" });
+    document.querySelectorAll("main > *, footer").forEach((el) => io.observe(el));
+  }
+
   /* ---------- expose for main.js + page scripts ---------------------- */
   window.WAW = { CFG, ROOT, IS_HOME, get, fmt, esc, href, linkAttrs, isExternal, ICONS, foot, renderTrails, bind, initReveal, socialLinks };
 
@@ -269,6 +278,7 @@
   renderFooter();
   bind();
   renderTrails();
+  pauseOffscreen();
   // main.js / page scripts add their own content, then call WAW.initReveal()
   if (!IS_HOME) requestAnimationFrame(() => initReveal());
 })();

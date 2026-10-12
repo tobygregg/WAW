@@ -27,17 +27,28 @@
     if (v.poster) vid.poster = ROOT + v.poster;
     const saveData = navigator.connection && navigator.connection.saveData;
     if (saveData || reduced) { vid.removeAttribute("autoplay"); return; }
-    [["webm", "video/webm"], ["mp4", "video/mp4"]].forEach(([k, type]) => {
+    // mp4 first so swapping in a new hero.mp4 is all you need to do
+    [["mp4", "video/mp4"], ["webm", "video/webm"]].forEach(([k, type]) => {
       if (!v[k]) return;
       const src = document.createElement("source");
       src.src = ROOT + v[k];
       src.type = type;
       vid.appendChild(src);
     });
+    // if the video can't load, hide it so the poster/background still looks right
+    const last = vid.querySelector("source:last-of-type");
+    if (last) last.addEventListener("error", () => {
+      console.warn("Hero video failed to load — check the file name/case in assets/video and config.js", v);
+      vid.style.display = "none";
+      vid.parentElement.style.background = `#130f2e url("${ROOT + v.poster}") center/cover`;
+    });
     vid.muted = true;
+    vid.defaultMuted = true;
     vid.load();
-    const p = vid.play();
-    if (p && p.catch) p.catch(() => {});
+    const tryPlay = () => { const p = vid.play(); if (p && p.catch) p.catch(() => {}); };
+    tryPlay();
+    // some phones block autoplay until the first touch — start it then
+    window.addEventListener("touchstart", tryPlay, { once: true, passive: true });
     // pause the video when it's off screen (saves battery on phones)
     new IntersectionObserver(([e]) => (e.isIntersecting ? vid.play().catch(() => {}) : vid.pause())).observe(vid);
   }
@@ -80,10 +91,6 @@
     if (window.ScrollTrigger) {
       gsap.to("[data-hero-content]", {
         yPercent: 14, opacity: 0.15, ease: "none",
-        scrollTrigger: { trigger: "#top", start: "top top", end: "bottom top", scrub: true },
-      });
-      gsap.to("[data-hero-video]", {
-        scale: 1.18, ease: "none",
         scrollTrigger: { trigger: "#top", start: "top top", end: "bottom top", scrub: true },
       });
     }
@@ -278,16 +285,18 @@
     let built = false;
 
     function build() {
-      const wr = wrap.getBoundingClientRect();
-      const Wd = wr.width;
+      // layout positions (offset*), so cards mid-animation don't knock the trail out of place
+      const rel = (el) => {
+        let x = 0, y = 0, n = el;
+        while (n && n !== wrap) { x += n.offsetLeft; y += n.offsetTop; n = n.offsetParent; }
+        return { left: x, top: y, right: x + el.offsetWidth, bottom: y + el.offsetHeight };
+      };
+      const Wd = wrap.offsetWidth;
       const desktop = window.innerWidth >= 768;
-      const rows = $$("[data-charity-card]", wrap).map((c) => {
-        const r = c.getBoundingClientRect();
-        return { left: r.left - wr.left, right: r.right - wr.left, top: r.top - wr.top, bottom: r.bottom - wr.top };
-      });
+      const rows = $$("[data-charity-card]", wrap).map(rel);
       const finish = $("[data-finish]", wrap);
-      const fr = finish ? finish.getBoundingClientRect() : null;
-      const endY = fr ? fr.top - wr.top + fr.height * 0.45 : wr.height;
+      const fr = finish ? rel(finish) : null;
+      const endY = fr ? fr.top + (fr.bottom - fr.top) * 0.45 : wrap.offsetHeight;
       const pts = [];
       if (desktop) {
         pts.push([Wd / 2, -40]);
@@ -474,8 +483,12 @@
     if (!gsap || !window.ScrollTrigger || reduced) return;
     $$("[data-parallax]").forEach((el) => {
       const amt = +el.dataset.parallax || 6;
-      gsap.fromTo(el, { yPercent: -amt, scale: 1.12 }, { yPercent: amt, scale: 1.12, ease: "none", scrollTrigger: { trigger: el.parentElement, start: "top bottom", end: "bottom top", scrub: true } });
+      gsap.fromTo(el, { yPercent: -amt, scale: 1.12 }, { yPercent: amt, scale: 1.12, ease: "none", scrollTrigger: { trigger: el.parentElement, start: "top bottom", end: "bottom top", scrub: 0.6 } });
     });
+    // images/fonts change the page height after load — re-measure so nothing jumps
+    const refresh = () => window.ScrollTrigger.refresh();
+    window.addEventListener("load", refresh);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(refresh);
   }
 
   /* ---------- go! ---------------------------------------------------- */

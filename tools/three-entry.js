@@ -3,7 +3,7 @@
 export {
   ACESFilmicToneMapping, BoxGeometry, CanvasTexture, CatmullRomCurve3, ConeGeometry,
   CylinderGeometry, DirectionalLight, DoubleSide, ExtrudeGeometry, Group, HemisphereLight,
-  IcosahedronGeometry, InstancedMesh, Mesh, MeshBasicMaterial, MeshStandardMaterial, Object3D,
-  PCFShadowMap, PerspectiveCamera, PlaneGeometry, RepeatWrapping, RingGeometry, SRGBColorSpace,
+  IcosahedronGeometry, InstancedMesh, Mesh, MeshBasicMaterial, MeshLambertMaterial, Object3D,
+  PerspectiveCamera, PlaneGeometry, RepeatWrapping, RingGeometry, SRGBColorSpace,
   Scene, Shape, SphereGeometry, TubeGeometry, Vector2, Vector3, WebGLRenderer,
 } from "three";
