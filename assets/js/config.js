@@ -30,7 +30,7 @@ window.WAW_CONFIG = {
   event: {
     year: "2027",
     // Used for the countdown. Format: YYYY-MM-DDTHH:MM:SS+01:00 (Guernsey summer time)
-    countdownTo: "2027-03-05T09:30:00+01:00",
+    countdownTo: "2027-05-03T09:30:00+01:00",
     showCountdown: true,
     slogan: "Fighting Poverty with Heart & Sole",
   },
@@ -113,7 +113,7 @@ window.WAW_CONFIG = {
     islands: {
       guernsey: {
         label: "Guernsey",
-        tagline: "Coastal paths from Grandes Rocques to L'Ancresse",
+        tagline: "Coastal paths from Port Soif to L'Ancresse",
         walks: [
           {
             name: "Guernsey Full",
@@ -134,11 +134,10 @@ window.WAW_CONFIG = {
         ],
         map: {
           // The coloured route line follows the coast between these two points
-          route: { from: [-2.5893, 49.4874], to: [-2.5205, 49.5046] },
+          route: { from: [-2.5822, 49.4866], to: [-2.5205, 49.5046] },
           pins: [
             { label: "Start & Finish", sub: "Rovers AC, Port Soif", at: [-2.5822, 49.4866], type: "main" },
             { label: "Half start", sub: "Pembroke Bay", at: [-2.5215, 49.5038], type: "alt" },
-            { label: "Grandes Rocques", sub: "", at: [-2.5893, 49.4874], type: "minor" },
           ],
         },
       },
@@ -149,7 +148,7 @@ window.WAW_CONFIG = {
           {
             name: "Herm",
             distance: "8.5 km",
-            time: "10am",
+            time: "9.30am",
             start: "Herm Harbour (check in at The Ship before)",
             finish: "The Ship",
             badge: "Herm",
@@ -187,7 +186,7 @@ window.WAW_CONFIG = {
       },
       {
         name: "The Tumaini Fund",
-        logo: "",
+        logo: "assets/images/logos/tumaini-fund.webp",
         badgeStyle: "tumaini",
         text: "Founded in Guernsey in 2003 and now also registered in the UK, USA and Canada. Tumaini supports AIDS orphans in Kagera, NW Tanzania — in their own communities, not orphanages — with education to degree or college level, clean water, decent housing and school buildings.",
         highlights: ["Founded in Guernsey, 2003", "50,000 orphans supported"],
@@ -195,7 +194,8 @@ window.WAW_CONFIG = {
       },
       {
         name: "This Is EPIC",
-        logo: "",
+        logo: "assets/images/logos/this-is-epic.webp",
+        logoBg: "#faa73f", // fills the logo box behind square logos (optional)
         badgeStyle: "epic",
         text: "Empowers local organisations in Uganda and the Democratic Republic of Congo to run their own Village Savings and Loans projects — teaching groups to save, lend and invest in income-generating work, so families in extreme poverty can build a stable, sustainable future.",
         highlights: ["Uganda & DR Congo", "Village Savings & Loans"],
@@ -270,7 +270,7 @@ window.WAW_CONFIG = {
       closed: "Registration for the {year} walk has closed",
     },
     title: "Enter the walk",
-    closes: "Registration will close at 4pm on Tuesday 4th May {year}.",
+    closes: "Registration will close at 4pm on Sunday 2nd May {year}.",
     text: "You have the choice of two Guernsey walks as well as the beautiful walk in Herm. If the full 20 km route is too long, choose the half distance walk, or the 8.5 km Herm walk.",
     afterText: "Once registered, you'll be sent a confirmation with your unique Walker Number and a link to your personal online fundraising page.",
     fees: [

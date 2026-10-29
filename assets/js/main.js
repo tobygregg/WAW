@@ -243,7 +243,7 @@
      CHARITIES — cards + footprint trail that walks as you scroll
      ================================================================ */
   function logoBadge(c) {
-    if (c.logo) return `<img src="${esc(ROOT + c.logo)}" alt="${esc(c.name)} logo" loading="lazy" class="h-full w-full object-contain p-2" />`;
+    if (c.logo) return `<img src="${esc(ROOT + c.logo)}" alt="${esc(c.name)} logo" loading="lazy" class="h-full w-full object-contain ${c.logoBg ? "" : "p-2"}"${c.logoBg ? ` style="background:${esc(c.logoBg)}"` : ""} />`;
     switch (c.badgeStyle) {
       case "christian-aid":
         return `<div class="logo-badge logo-badge--christian-aid" role="img" aria-label="${esc(c.name)}"><span class="text-left"><span class="block text-[0.85rem] leading-none">christian</span><span class="block text-[1.9rem] leading-[0.85]">aid</span></span></div>`;
