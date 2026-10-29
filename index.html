@@ -35,6 +35,8 @@
   <!-- Fonts + styles -->
   <link rel="preload" href="assets/fonts/archivo-black.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="assets/fonts/archivo-var.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="assets/fonts/caveat-700.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="assets/video/hero-poster.jpg" as="image" fetchpriority="high" />
   <link rel="stylesheet" href="assets/css/styles.css" />
   <script>document.documentElement.classList.replace("no-js", "js");</script>
   <noscript><style>.js [data-reveal]{opacity:1!important;transform:none!important}</style></noscript>
@@ -76,7 +78,13 @@
          HERO
          ============================================================= -->
     <section id="top" class="grain relative isolate flex min-h-[100svh] items-end overflow-hidden bg-navy-900 text-white">
-      <video class="hero-video absolute inset-0 -z-20 h-full w-full object-cover" data-hero-video autoplay muted loop playsinline preload="auto" aria-hidden="true"></video>
+      <!-- Hero video: sources are here so the browser starts loading them straight away.
+           Phones get the lighter hero-mobile.mp4. To swap the video, replace the files in assets/video
+           (keep the same names) — or change the paths here AND in config.js. -->
+      <video class="hero-video absolute inset-0 -z-20 h-full w-full object-cover" data-hero-video autoplay muted loop playsinline preload="auto" poster="assets/video/hero-poster.jpg" aria-hidden="true">
+        <source src="assets/video/hero-mobile.mp4" type="video/mp4" media="(max-width: 767px)" />
+        <source src="assets/video/hero.mp4" type="video/mp4" />
+      </video>
       <div class="hero-overlay absolute inset-0 -z-10"></div>
 
       <!-- glowing blobs -->
@@ -112,7 +120,7 @@
           <div class="flex flex-col items-start gap-6 lg:col-span-4 lg:items-end" data-hero-in>
             <div class="relative hidden lg:block">
               <div class="absolute inset-4 rounded-full bg-lime/40 blur-2xl"></div>
-              <img src="assets/images/logo.webp" alt="World Aid Walk logo" width="512" height="512" class="relative h-56 w-56 animate-float drop-shadow-2xl xl:h-64 xl:w-64" />
+              <img src="assets/images/logo.webp" alt="World Aid Walk logo" width="512" height="512" loading="lazy" class="relative h-56 w-56 animate-float drop-shadow-2xl xl:h-64 xl:w-64" />
               <span class="absolute -left-6 top-6 rotate-[-14deg] rounded-full bg-lime px-4 py-2 font-display text-sm uppercase text-navy shadow-lg" data-text="hero.sticker">Since 1970</span>
             </div>
 
@@ -192,14 +200,14 @@
               </div>
 
               <!-- distance badge -->
-              <div class="absolute right-3 top-3 rounded-2xl bg-navy px-4 py-3 text-white shadow-lift sm:right-6 sm:top-6" data-island-badge>
+              <div class="absolute bottom-3 right-3 rounded-2xl bg-navy px-3 py-2 text-white shadow-lift sm:bottom-6 sm:right-6 sm:px-4 sm:py-3" data-island-badge>
                 <span class="block text-[0.65rem] font-extrabold uppercase tracking-[0.2em] text-lime-300" data-island-badge-label>Coastal route</span>
-                <span class="block font-display text-xl" data-island-badge-text>Port Soif</span>
+                <span class="block font-display text-base sm:text-xl" data-island-badge-text>Port Soif</span>
               </div>
 
-              <p class="pointer-events-none absolute bottom-4 right-4 hidden items-center gap-2 text-xs font-bold text-navy/50 lg:flex">
+              <p class="pointer-events-none absolute bottom-7 left-20 flex items-center gap-1.5 whitespace-nowrap text-xs font-bold text-navy/50 sm:bottom-5 sm:left-1/2 sm:-translate-x-1/2">
                 <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M8 12h8M4 12l3-3M4 12l3 3M20 12l-3-3M20 12l-3 3"/></svg>
-                Drag to spin
+                <span class="hidden lg:inline">Drag to spin</span><span class="lg:hidden">Swipe to spin</span>
               </p>
             </div>
           </div>
@@ -226,10 +234,10 @@
         <!-- photo collage -->
         <div class="relative mx-auto w-full max-w-xl pb-16 lg:pb-0" data-reveal="left">
           <div class="overflow-hidden rounded-4xl shadow-lift">
-            <img src="assets/images/photos/drone-rovers-ac.webp" alt="Drone shot of walkers warming up at the start arch at Rovers Athletic Club, Port Soif" width="1280" height="720" loading="lazy" class="aspect-[4/3] h-full w-full object-cover" data-parallax="-6" />
+            <img src="assets/images/photos/drone-rovers-ac.webp" srcset="assets/images/photos/drone-rovers-ac-800.webp 800w, assets/images/photos/drone-rovers-ac.webp 1280w" sizes="(min-width: 1024px) 576px, 92vw" decoding="async" alt="Drone shot of walkers warming up at the start arch at Rovers Athletic Club, Port Soif" width="1280" height="720" loading="lazy" class="aspect-[4/3] h-full w-full object-cover" data-parallax="-6" />
           </div>
           <div class="absolute -bottom-2 right-[-4%] w-[48%] rotate-[4deg] overflow-hidden rounded-3xl border-[6px] border-white shadow-lift sm:right-[-8%]">
-            <img src="assets/images/photos/samba-band-start.webp" alt="The samba band playing at the start of the walk" width="960" height="720" loading="lazy" class="aspect-[4/3] w-full object-cover" />
+            <img src="assets/images/photos/samba-band-start.webp" srcset="assets/images/photos/samba-band-start-640.webp 640w, assets/images/photos/samba-band-start.webp 960w" sizes="(min-width: 1024px) 280px, 45vw" decoding="async" alt="The samba band playing at the start of the walk" width="960" height="720" loading="lazy" class="aspect-[4/3] w-full object-cover" />
           </div>
           <span class="absolute -left-3 -top-5 rotate-[-8deg] rounded-2xl bg-navy px-4 py-3 font-hand text-2xl text-lime shadow-lift sm:-left-6">est. 1970 ✦</span>
           <div class="walk-trail -bottom-10 left-[6%] opacity-90" style="--len: 300px; transform: rotate(-8deg)" data-trail data-steps="8" data-color="#7fb829" data-size="15"></div>
@@ -273,7 +281,7 @@
 
           <!-- finish line: the arch -->
           <div class="relative mx-auto mt-10 max-w-md text-center md:mt-4" data-finish>
-            <img src="assets/images/finish-arch.webp" alt="The World Aid Walk inflatable finish arch" width="1100" height="733" loading="lazy" class="mx-auto w-[85%] animate-float-rot drop-shadow-[0_30px_30px_rgba(39,33,81,0.25)]" />
+            <img src="assets/images/finish-arch.webp" srcset="assets/images/finish-arch-700.webp 700w, assets/images/finish-arch.webp 1100w" sizes="(min-width: 640px) 380px, 75vw" decoding="async" alt="The World Aid Walk inflatable finish arch" width="1100" height="733" loading="lazy" class="mx-auto w-[85%] animate-float-rot drop-shadow-[0_30px_30px_rgba(39,33,81,0.25)]" />
             <p class="-mt-2 font-hand text-3xl text-navy">…and that's the finish line!</p>
           </div>
         </div>
@@ -313,7 +321,7 @@
     <section id="donate" class="relative py-8 sm:py-12">
       <div class="container-x">
         <div class="grain relative isolate overflow-hidden rounded-[2.5rem] bg-navy text-white shadow-lift" data-reveal="zoom">
-          <img src="assets/images/photos/coast-path-walkers.webp" alt="" width="1600" height="1200" loading="lazy" class="absolute inset-0 -z-20 h-full w-full object-cover opacity-90" data-parallax="8" />
+          <img src="assets/images/photos/coast-path-walkers.webp" srcset="assets/images/photos/coast-path-walkers-800.webp 800w, assets/images/photos/coast-path-walkers.webp 1600w" sizes="(min-width: 1280px) 1200px, 100vw" decoding="async" alt="" width="1600" height="1200" loading="lazy" class="absolute inset-0 -z-20 h-full w-full object-cover opacity-90" data-parallax="8" />
           <div class="absolute inset-0 -z-10 bg-gradient-to-r from-navy via-navy/90 to-navy/30"></div>
 
           <div class="grid items-center gap-10 p-8 sm:p-12 lg:grid-cols-12 lg:p-16">

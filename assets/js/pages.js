@@ -44,7 +44,7 @@
             <p class="mt-3 font-display text-sm sm:mt-4 sm:text-lg">${esc(r)}</p>
           </div>`).join("")}</div>
         <div class="mt-10 flex flex-wrap gap-3">
-          ${arrowBtn(ROOT + "pages/contact.html?topic=Volunteering", "Offer to help", "btn-lime")}
+          ${arrowBtn(`mailto:${get("site.email")}?subject=${encodeURIComponent("World Aid Walk – Volunteering")}`, "Offer to help", "btn-lime")}
           <a href="mailto:${esc(get("site.email"))}" class="btn btn-outline">${esc(get("site.email"))}</a>
         </div>
         <figure class="mt-12 overflow-hidden rounded-4xl shadow-lift">
@@ -65,81 +65,74 @@
           ${card(L.raceNationSupport, "Registration or payment help", "Race Nation support for anything to do with entering or paying.", 0)}
           ${card(L.raceNationNoEmails, "No emails received?", "Entered but had no confirmation? Check junk/spam first, then follow this guide.", 1)}
         </div>
-        <p class="prose-waw mt-8">Still stuck? <a href="${ROOT}pages/contact.html?topic=Registration">Contact the World Aid Walk team</a>.</p>`;
+        <p class="prose-waw mt-8">Still stuck? <a href="mailto:${esc(get("site.email"))}?subject=${encodeURIComponent("World Aid Walk – Registration")}">Email the World Aid Walk team</a>.</p>`;
     },
 
     contact() {
       const site = CFG.site || {};
-      const params = new URLSearchParams(location.search);
-      const pre = params.get("topic");
-      const topics = P.topics || ["General question"];
-      const thanks = (site.url || "") + "/pages/thanks.html";
+      const L = CFG.links || {};
+      const email = site.email || "";
+      const mail = (subject) => `mailto:${email}?subject=${encodeURIComponent("World Aid Walk – " + subject)}`;
+      const topics = P.topics || [];
+      const socials = [
+        ["facebook", "Facebook", "@WorldAidWalk"],
+        ["instagram", "Instagram", "@worldaidwalk"],
+        ["twitter", "X (Twitter)", "@WorldAidWalk"],
+      ].filter(([k]) => L[k]);
       return `
-      <div class="grid gap-10 lg:grid-cols-5">
-        <form class="lg:col-span-3" action="${esc(site.formEndpoint)}" method="POST" data-contact-form novalidate>
-          <input type="hidden" name="_subject" value="New message from the World Aid Walk website" />
-          <input type="hidden" name="_template" value="table" />
-          <input type="hidden" name="_next" value="${esc(thanks)}" />
-          <input type="text" name="_honey" tabindex="-1" autocomplete="off" class="hidden" aria-hidden="true" />
-          <div class="grid gap-5 sm:grid-cols-2">
-            <div><label class="field-label" for="f-name">Your name</label><input class="field" id="f-name" name="name" required autocomplete="name" placeholder="Jane Le Page" /></div>
-            <div><label class="field-label" for="f-email">Email</label><input class="field" id="f-email" name="email" type="email" required autocomplete="email" placeholder="you@example.com" /></div>
+      <div class="grid gap-6 lg:grid-cols-5">
+        <!-- Email -->
+        <div class="relative overflow-hidden rounded-4xl bg-navy p-7 text-white sm:p-10 lg:col-span-3" data-reveal>
+          <div class="pointer-events-none absolute -bottom-8 -right-4 rotate-[-18deg] opacity-10">${foot("r", "#7fb829", 120)}</div>
+          <span class="grid h-14 w-14 place-items-center rounded-2xl bg-lime text-navy"><span class="h-7 w-7">${ICONS.mail}</span></span>
+          <h2 class="mt-6 font-display text-3xl sm:text-4xl">Email the team</h2>
+          <p class="mt-2 max-w-md text-white/70">The quickest way to reach us. Someone from the committee will get back to you.</p>
+          <a href="mailto:${esc(email)}" class="mt-6 block break-all font-display text-xl text-lime underline decoration-white/20 decoration-2 underline-offset-8 transition hover:decoration-lime sm:text-3xl">${esc(email)}</a>
+          <div class="mt-8 flex flex-wrap gap-3">
+            <a href="mailto:${esc(email)}" class="btn btn-lime">Send an email <span class="btn-arrow h-4 w-4">${ICONS.arrow}</span></a>
+            <button type="button" class="btn btn-glass" data-copy="${esc(email)}">Copy address</button>
           </div>
-          <div class="mt-5"><label class="field-label" for="f-topic">What's it about?</label>
-            <select class="field" id="f-topic" name="topic">${topics.map((tp) => `<option ${pre === tp ? "selected" : ""}>${esc(tp)}</option>`).join("")}</select>
+          ${topics.length ? `
+          <p class="mt-10 text-xs font-extrabold uppercase tracking-[0.2em] text-lime-300">Or email us about…</p>
+          <div class="mt-3 flex flex-wrap gap-2">${topics.map((t) => `<a href="${esc(mail(t))}" class="rounded-full bg-white/10 px-4 py-2 text-sm font-bold text-white transition hover:bg-lime hover:text-navy">${esc(t)}</a>`).join("")}</div>` : ""}
+        </div>
+
+        <div class="flex flex-col gap-6 lg:col-span-2">
+          <!-- Socials -->
+          <div class="card p-7" data-reveal style="--d:.08s">
+            <h2 class="font-display text-2xl">Follow along</h2>
+            <p class="mt-1 text-sm text-navy/65">News, photos and walk-day updates.</p>
+            <ul class="mt-5 space-y-2">${socials.map(([k, label, handle]) => `
+              <li><a href="${esc(L[k])}" target="_blank" rel="noopener" class="group flex items-center gap-4 rounded-2xl p-2 transition hover:bg-navy/[0.04]">
+                <span class="grid h-11 w-11 flex-none place-items-center rounded-full bg-navy text-white transition group-hover:bg-lime group-hover:text-navy"><span class="h-5 w-5">${ICONS[k]}</span></span>
+                <span><span class="block font-bold">${label}</span><span class="block text-sm text-navy/55">${handle}</span></span>
+                <span class="ml-auto h-4 w-4 text-navy/40">${ICONS.external}</span>
+              </a></li>`).join("")}
+            </ul>
           </div>
-          <div class="mt-5"><label class="field-label" for="f-msg">Message</label><textarea class="field min-h-[160px]" id="f-msg" name="message" required placeholder="How can we help?"></textarea></div>
-          <p class="mt-3 text-xs text-navy/55">We only use your details to reply to you. See our <a class="font-bold underline" href="${ROOT}pages/privacy.html">privacy info</a>.</p>
-          <button type="submit" class="btn btn-lime mt-6 px-8 py-4 text-base" data-submit>Send message <span class="btn-arrow h-5 w-5">${ICONS.arrow}</span></button>
-          <p class="mt-4 hidden rounded-2xl p-4 text-sm font-bold" data-form-status role="status"></p>
-        </form>
-        <aside class="lg:col-span-2">
-          <div class="rounded-4xl bg-navy p-7 text-white">
-            <h2 class="font-display text-2xl">Prefer email?</h2>
-            <p class="mt-2 text-white/70">Drop us a line any time.</p>
-            <a href="mailto:${esc(site.email)}" class="mt-5 inline-flex items-center gap-2 break-all font-bold text-lime"><span class="h-5 w-5 flex-none">${ICONS.mail}</span>${esc(site.email)}</a>
-            <div class="mt-6 flex gap-2.5">${W.socialLinks("h-11 w-11 bg-white/10 hover:bg-lime hover:text-navy")}</div>
-            <div class="mt-8 flex gap-2 opacity-70">${foot("l", "#7fb829", 18)}${foot("r", "#7fb829", 18)}</div>
-          </div>
-          <a href="${ROOT}pages/volunteer.html" class="mt-4 flex items-center justify-between rounded-4xl bg-lime p-6 font-display text-lg text-navy transition hover:-translate-y-1">Want to volunteer? <span class="h-6 w-6">${ICONS.arrow}</span></a>
-        </aside>
+          <!-- Quick links -->
+          <a href="${ROOT}pages/volunteer.html" class="flex items-center justify-between rounded-4xl bg-lime p-6 font-display text-lg text-navy transition hover:-translate-y-1" data-reveal style="--d:.16s">Want to volunteer? <span class="h-6 w-6">${ICONS.arrow}</span></a>
+          <a href="${ROOT}pages/support.html" class="card flex items-center justify-between p-6 font-display text-lg transition hover:-translate-y-1" data-reveal style="--d:.24s">Help with registration <span class="h-6 w-6">${ICONS.arrow}</span></a>
+        </div>
       </div>`;
     },
   };
 
   if (host && renderers[page]) host.innerHTML = renderers[page]();
 
-  // contact form: send with AJAX so people stay on the page
-  const form = $("[data-contact-form]");
-  if (form) {
-    const status = $("[data-form-status]");
-    const btn = $("[data-submit]");
-    const show = (msg, ok) => {
-      status.textContent = msg;
-      status.className = `mt-4 rounded-2xl p-4 text-sm font-bold ${ok ? "bg-lime/20 text-navy" : "bg-red-50 text-red-700"}`;
-    };
-    form.addEventListener("submit", async (e) => {
-      if (!form.checkValidity()) { e.preventDefault(); form.reportValidity(); return; }
-      e.preventDefault();
-      btn.disabled = true;
-      btn.classList.add("opacity-60");
+  // copy-email button on the contact page
+  document.querySelectorAll("[data-copy]").forEach((b) => {
+    b.addEventListener("click", async () => {
       try {
-        const res = await fetch(form.action.replace("formsubmit.co/", "formsubmit.co/ajax/"), {
-          method: "POST",
-          headers: { Accept: "application/json" },
-          body: new FormData(form),
-        });
-        if (!res.ok) throw new Error("bad response");
-        form.reset();
-        show("Thanks! Your message is on its way — we'll get back to you soon. 💚", true);
-      } catch (err) {
-        show(`Sorry, that didn't send. Please email us at ${get("site.email")}.`, false);
-      } finally {
-        btn.disabled = false;
-        btn.classList.remove("opacity-60");
+        await navigator.clipboard.writeText(b.dataset.copy);
+        const old = b.textContent;
+        b.textContent = "Copied! ✓";
+        setTimeout(() => (b.textContent = old), 1800);
+      } catch (e) {
+        location.href = "mailto:" + b.dataset.copy;
       }
     });
-  }
+  });
 
   W.renderTrails();
   W.initReveal();

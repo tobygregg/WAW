@@ -26,7 +26,7 @@
   };
 
   const ISLAND_SIZE = { guernsey: 9.2, herm: 8.2 };
-  const BASE_ROT_Y = { guernsey: 2.1, herm: 0.5 };
+  const BASE_ROT_Y = { guernsey: 0, herm: 0 }; // 0 = north at the top, like a normal map
   const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   /* ---------- tiny helpers ------------------------------------------ */
@@ -396,28 +396,40 @@
     shadow.position.y = -4.4;
     scene.add(shadow);
 
+    // Islands are built on demand: the one you see first is built straight away,
+    // the other is built in idle time so the toggle is instant.
     const islands = {};
-    Object.keys(cfg.walkInfo.islands).forEach((k) => {
-      if (!outlines[k]) return;
+    const labelEls = {};
+    function ensure(k) {
+      if (islands[k] || !outlines[k] || !cfg.walkInfo.islands[k]) return islands[k];
       const isl = buildIsland(THREE, k, outlines[k], cfg.walkInfo.islands[k]);
       isl.root.visible = false;
+      isl.spin = 0; // each island remembers where you spun it to
       scene.add(isl.root);
       islands[k] = isl;
-    });
-
-    // HTML labels over the pins
-    const labelEls = {};
-    Object.values(islands).forEach((isl) => {
-      labelEls[isl.key] = isl.pins.map((p) => {
+      // HTML labels over the pins
+      labelEls[k] = isl.pins.map((p) => {
         const el = document.createElement("div");
         el.className = `pin-label pin-label--${p.cfg.type || "minor"}`;
         el.innerHTML = `<span>${p.cfg.label}</span>${p.cfg.sub ? `<small>${p.cfg.sub}</small>` : ""}`;
         labelLayer && labelLayer.appendChild(el);
         return { el, w: 0, h: 0, on: false };
       });
-    });
+      labelsMeasured = false;
+      // upload geometry/textures + compile shaders now, so the first animated frame doesn't stutter
+      isl.root.visible = true;
+      // (async on GPUs that support it, so building the island never freezes scrolling)
+      if (renderer.compileAsync && renderer.extensions.has("KHR_parallel_shader_compile")) renderer.compileAsync(isl.root, camera, scene).catch(() => {});
+      else renderer.compile(isl.root, camera, scene);
+      isl.root.visible = false;
+      return isl;
+    }
+    const idle = window.requestIdleCallback || ((fn) => setTimeout(fn, 600));
+    function buildRestLater() {
+      Object.keys(cfg.walkInfo.islands).forEach((k) => { if (!islands[k]) idle(() => ensure(k), { timeout: 3000 }); });
+    }
 
-    const tilt = { x: 0, y: 0, tx: 0, ty: 0, spin: 0, spinV: 0 };
+    const tilt = { x: 0, y: 0, tx: 0, ty: 0, spinV: 0 };
     let stageW = 1, stageH = 1;
 
     function resize() {
@@ -427,8 +439,9 @@
       renderer.setSize(w, h, false);
       camera.aspect = w / h;
       const far = w / h < 1.1 ? 1.5 : 1.16;
-      camera.position.set(0, 11 * far, 10.4 * far);
-      camera.lookAt(0, -0.6, 0);
+      // fairly overhead so the north coast (and the route along it) stays visible
+      camera.position.set(0, 12.6 * far, 8.4 * far);
+      camera.lookAt(0, -0.5, 0.4);
       camera.updateProjectionMatrix();
       labelsMeasured = false;
       wake(50);
@@ -441,20 +454,25 @@
       if (visible && !raf && !document.hidden) raf = requestAnimationFrame(frame);
     }
 
-    // mouse tilt + drag spin (mouse only — touch keeps page scrolling)
+    // Mouse: gentle tilt on hover. Mouse or finger: drag sideways to spin.
+    // The spin stays wherever you leave it (no snapping back).
+    // Touch: vertical swipes still scroll the page (touch-action: pan-y on the stage).
     let dragging = false, lastX = 0;
-    if (window.matchMedia("(hover: hover)").matches && !prefersReduced) {
+    if (!prefersReduced) {
       container.addEventListener("pointermove", (e) => {
-        if (e.pointerType !== "mouse") return;
-        const r = container.getBoundingClientRect();
-        tilt.tx = ((e.clientY - r.top) / r.height - 0.5) * 0.18;
-        tilt.ty = ((e.clientX - r.left) / r.width - 0.5) * 0.35;
-        if (dragging) { tilt.spinV += (e.clientX - lastX) * 0.0022; lastX = e.clientX; }
+        if (e.pointerType === "mouse") {
+          const r = container.getBoundingClientRect();
+          tilt.tx = ((e.clientY - r.top) / r.height - 0.5) * 0.18;
+          tilt.ty = ((e.clientX - r.left) / r.width - 0.5) * 0.35;
+        }
+        if (dragging) { tilt.spinV += (e.clientX - lastX) * (e.pointerType === "mouse" ? 0.0022 : 0.003); lastX = e.clientX; }
         wake(900);
-      });
-      container.addEventListener("pointerleave", () => { tilt.tx = tilt.ty = 0; dragging = false; wake(1500); });
-      canvasWrap.addEventListener("pointerdown", (e) => { if (e.pointerType === "mouse") { dragging = true; lastX = e.clientX; canvasWrap.classList.add("is-grabbing"); } });
-      window.addEventListener("pointerup", () => { if (dragging) { dragging = false; canvasWrap.classList.remove("is-grabbing"); wake(2500); } });
+      }, { passive: true });
+      container.addEventListener("pointerleave", (e) => { if (e.pointerType === "mouse") { tilt.tx = tilt.ty = 0; wake(1500); } });
+      canvasWrap.addEventListener("pointerdown", (e) => { dragging = true; lastX = e.clientX; canvasWrap.classList.add("is-grabbing"); wake(900); });
+      const stop = () => { if (dragging) { dragging = false; canvasWrap.classList.remove("is-grabbing"); wake(2500); } };
+      window.addEventListener("pointerup", stop);
+      window.addEventListener("pointercancel", stop); // page started scrolling instead
     }
 
     const ro = new ResizeObserver(resize);
@@ -505,14 +523,16 @@
     function playIntro() {
       if (introDone) return;
       introDone = true;
-      flyIn(islands[current], "below");
+      flyIn(ensure(current), "below");
+      buildRestLater();
     }
 
     function show(key) {
-      if (!islands[key] || key === current) return;
+      if (key === current || !ensure(key)) return;
       const prev = islands[current];
       current = key;
-      if (!introDone) { introDone = true; flyIn(islands[key], "below"); return; }
+      tilt.spinV = 0;
+      if (!introDone || !prev) { introDone = true; flyIn(islands[key], "below"); buildRestLater(); return; }
       gsap && gsap.killTweensOf([prev.root.position, prev.root.rotation, prev.root.scale]);
       flyOut(prev);
       setTimeout(() => flyIn(islands[key], "side"), prefersReduced ? 0 : 340);
@@ -524,14 +544,14 @@
       raf = 0;
       tilt.x += (tilt.tx - tilt.x) * 0.08;
       tilt.y += (tilt.ty - tilt.y) * 0.08;
-      tilt.spin += tilt.spinV;
+      const cur0 = islands[current];
+      if (cur0) cur0.spin = (cur0.spin + tilt.spinV) % (Math.PI * 2);
       tilt.spinV *= 0.9;
-      if (!dragging) tilt.spin *= 0.97;
 
       Object.values(islands).forEach((isl) => {
         if (!isl.root.visible) return;
         isl.floater.rotation.x = tilt.x;
-        isl.floater.rotation.y = (BASE_ROT_Y[isl.key] || 0.5) + tilt.y + tilt.spin;
+        isl.floater.rotation.y = (BASE_ROT_Y[isl.key] || 0) + tilt.y + isl.spin;
         isl.tubeGeo.setDrawRange(0, Math.floor((isl.totalIdx * isl.routeProgress.v) / 3) * 3);
         isl.pins.forEach((p) => p.group.scale.setScalar(Math.max(0.001, isl.pinScale.v)));
       });
@@ -542,7 +562,7 @@
       updateLabels();
       updateCompass();
 
-      const settling = Math.abs(tilt.tx - tilt.x) + Math.abs(tilt.ty - tilt.y) + Math.abs(tilt.spinV) + Math.abs(tilt.spin) > 0.002;
+      const settling = Math.abs(tilt.tx - tilt.x) + Math.abs(tilt.ty - tilt.y) + Math.abs(tilt.spinV) > 0.002;
       if (visible && !document.hidden && (performance.now() < activeUntil || settling || dragging)) raf = requestAnimationFrame(frame);
     }
 
@@ -585,6 +605,9 @@
       if (visible) wake(100);
     }).observe(container);
     document.addEventListener("visibilitychange", () => { if (!document.hidden) wake(100); });
+
+    // build + upload the first island now (before it's on screen) so the fly-in is smooth
+    ensure(current);
 
     container.classList.add("is-3d");
     return { show, playIntro, get current() { return current; } };

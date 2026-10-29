@@ -19,9 +19,6 @@ window.WAW_CONFIG = {
     url: "https://www.worldaidwalk.org.gg",          // live site address (no trailing slash)
     email: "worldaidwalk@gmail.com",
     charityNumber: "171",                            // Guernsey registered charity no.
-    // Contact form is sent by FormSubmit (free). The first message ever sent
-    // triggers a one-off "activate" email to this address — click it once.
-    formEndpoint: "https://formsubmit.co/worldaidwalk@gmail.com",
   },
 
   /* ------------------------------------------------------------------
@@ -73,11 +70,12 @@ window.WAW_CONFIG = {
     primaryButton: { label: "Register Now", href: "#enter" },
     secondaryButton: { label: "Walk info", href: "#walk-info" },
     video: {
-      // Swap these for real event footage any time — keep it short (~20s), 720p, no audio, under ~6MB.
+      // Easiest way to swap the video: replace the files in assets/video, keeping these names.
+      // Keep it short (~20s), no audio, "web optimised"/faststart, under ~3MB (desktop) / ~1.5MB (mobile).
       // File names are CASE-SENSITIVE on GitHub Pages (hero.mp4 ≠ Hero.MP4).
-      mp4: "assets/video/hero.mp4",
-      webm: "assets/video/hero.webm", // optional — delete this line if you only have the mp4
-      poster: "assets/video/hero-poster.jpg",
+      mp4: "assets/video/hero.mp4",              // desktop (720p)
+      mp4Mobile: "assets/video/hero-mobile.mp4", // phones (540p) — delete this line to use one file for all
+      poster: "assets/video/hero-poster.jpg",    // still image shown while the video loads (use the first frame)
     },
   },
 
@@ -178,7 +176,7 @@ window.WAW_CONFIG = {
     items: [
       {
         name: "Christian Aid",
-        logo: "",
+        logo: "assets/images/logos/christian-aid.webp",
         badgeStyle: "christian-aid",
         text: "A worldwide charity working to sustain life and build better living conditions in areas of poverty. Local partners on the ground make sure aid reaches the people who need it most — right now supporting vulnerable and displaced people in Gaza and Ukraine.",
         highlights: ["Worldwide projects", "Gaza & Ukraine relief"],
@@ -203,7 +201,7 @@ window.WAW_CONFIG = {
       },
       {
         name: "The Eleanor Foundation",
-        logo: "",
+        logo: "assets/images/logos/eleanor-foundation.webp",
         badgeStyle: "eleanor",
         text: "Created in 2012 in memory of Eleanor Carey, who died aged 22 while cycling in London. Ellie cared deeply about sustainable development and clean water, so since 2014 the Foundation has been installing shallow wells and protected springs in North West Tanzania.",
         highlights: ["Clean water & sanitation", "NW Tanzania since 2014"],
@@ -338,7 +336,8 @@ window.WAW_CONFIG = {
     },
     contact: {
       title: "Contact us",
-      intro: "Questions, ideas or want to volunteer? Send us a message and the team will get back to you.",
+      intro: "Questions, ideas or want to volunteer? Get in touch and the team will get back to you.",
+      // these show as quick "email us about…" buttons on the contact page
       topics: ["General question", "Volunteering", "Registration", "Sponsorship", "Fundraising"],
     },
     support: {

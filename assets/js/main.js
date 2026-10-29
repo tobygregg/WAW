@@ -24,33 +24,43 @@
     const vid = $("[data-hero-video]");
     const v = get("hero.video") || {};
     if (!vid) return;
-    if (v.poster) vid.poster = ROOT + v.poster;
     const saveData = navigator.connection && navigator.connection.saveData;
-    if (saveData || reduced) { vid.removeAttribute("autoplay"); return; }
-    // mp4 first so swapping in a new hero.mp4 is all you need to do
-    [["mp4", "video/mp4"], ["webm", "video/webm"]].forEach(([k, type]) => {
-      if (!v[k]) return;
-      const src = document.createElement("source");
-      src.src = ROOT + v[k];
-      src.type = type;
-      vid.appendChild(src);
-    });
-    // if the video can't load, hide it so the poster/background still looks right
+    if (saveData || reduced) {
+      // data saver / reduced motion: keep the poster, don't stream the video
+      vid.removeAttribute("autoplay");
+      vid.pause();
+      vid.preload = "none";
+      return;
+    }
+
+    // The <source> tags in index.html load first (fastest). If config.js points somewhere
+    // else, switch to the config files instead.
+    const want = [];
+    if (v.mp4Mobile) want.push({ src: ROOT + v.mp4Mobile, media: "(max-width: 767px)" });
+    if (v.mp4) want.push({ src: ROOT + v.mp4, media: "" });
+    const have = $$("source", vid).map((s) => ({ src: s.getAttribute("src"), media: s.getAttribute("media") || "" }));
+    if (want.length && JSON.stringify(want) !== JSON.stringify(have)) {
+      vid.innerHTML = want.map((w) => `<source src="${esc(w.src)}" type="video/mp4"${w.media ? ` media="${w.media}"` : ""} />`).join("");
+      vid.load();
+    }
+    if (v.poster && vid.getAttribute("poster") !== ROOT + v.poster) vid.poster = ROOT + v.poster;
+
+    // if the video can't load, keep the poster showing instead of a blank box
     const last = vid.querySelector("source:last-of-type");
     if (last) last.addEventListener("error", () => {
-      console.warn("Hero video failed to load — check the file name/case in assets/video and config.js", v);
+      console.warn("Hero video failed to load — check the file names/case in assets/video and config.js", v);
       vid.style.display = "none";
-      vid.parentElement.style.background = `#130f2e url("${ROOT + v.poster}") center/cover`;
+      vid.parentElement.style.background = `#130f2e url("${ROOT + (v.poster || "")}") center/cover`;
     });
+
     vid.muted = true;
     vid.defaultMuted = true;
-    vid.load();
     const tryPlay = () => { const p = vid.play(); if (p && p.catch) p.catch(() => {}); };
     tryPlay();
     // some phones block autoplay until the first touch — start it then
     window.addEventListener("touchstart", tryPlay, { once: true, passive: true });
-    // pause the video when it's off screen (saves battery on phones)
-    new IntersectionObserver(([e]) => (e.isIntersecting ? vid.play().catch(() => {}) : vid.pause())).observe(vid);
+    // pause the video when it's off screen (saves battery + data on phones)
+    new IntersectionObserver(([e]) => (e.isIntersecting ? tryPlay() : vid.pause())).observe(vid);
   }
 
   function initCountdown() {
@@ -200,17 +210,32 @@
   function initIsland() {
     const stage = $("[data-island-stage]");
     if (!stage) return;
-    let started = false;
-    const start = () => {
-      if (started) return;
-      started = true;
-      loadScript(ROOT + "assets/vendor/three.custom.min.js")
-        .catch(() => null)
-        .then(() => loadScript(ROOT + "assets/data/island-outlines.js"))
-        .then(() => loadScript(ROOT + "assets/js/island3d.js"))
+
+    // 1) Download the 3D code quietly in the background once the page has finished loading
+    //    (all three files in parallel), so it's ready before anyone scrolls down.
+    let scripts = null;
+    const fetchScripts = () => {
+      if (!scripts) {
+        const three = loadScript(ROOT + "assets/vendor/three.custom.min.js").catch(() => null);
+        const data = loadScript(ROOT + "assets/data/island-outlines.js");
+        const code = loadScript(ROOT + "assets/js/island3d.js");
+        scripts = Promise.all([three, data, code]);
+      }
+      return scripts;
+    };
+    const idle = window.requestIdleCallback || ((fn) => setTimeout(fn, 1200));
+    const prefetch = () => idle(fetchScripts, { timeout: 4000 });
+    if (document.readyState === "complete") prefetch();
+    else window.addEventListener("load", prefetch, { once: true });
+
+    // 2) Build the island when you get near it, 3) fly it in when it's on screen.
+    let mounted = false;
+    const mount = () => {
+      if (mounted) return;
+      mounted = true;
+      fetchScripts()
         .then(() => {
           islandCtl = window.WAWIsland.mount(stage, { config: CFG, outlines: window.WAW_ISLANDS, initial: activeIsland });
-          // fly in when the stage is properly on screen
           const io2 = new IntersectionObserver(([e]) => {
             if (e.isIntersecting) { islandCtl.playIntro(); io2.disconnect(); }
           }, { threshold: 0.3 });
@@ -218,7 +243,7 @@
         })
         .catch((err) => console.warn("Island map failed to load", err));
     };
-    const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) { start(); io.disconnect(); } }, { rootMargin: "900px 0px" });
+    const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) { mount(); io.disconnect(); } }, { rootMargin: "1000px 0px" });
     io.observe(stage);
   }
 

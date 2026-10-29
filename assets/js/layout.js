@@ -116,7 +116,7 @@
 <header class="site-nav ${IS_HOME ? "" : "is-solid"} fixed inset-x-0 top-0 z-50 px-3 pt-3 sm:px-5 sm:pt-4" data-nav>
   <div class="nav-shell mx-auto flex max-w-[90rem] items-center justify-between gap-3 rounded-full py-2 pl-2 pr-2 sm:pl-3">
     <a ${linkAttrs("#top")} class="flex items-center gap-2.5" aria-label="World Aid Walk — home">
-      <img src="${ROOT}assets/images/logo.webp" alt="" width="512" height="512" class="h-11 w-11 drop-shadow-md sm:h-12 sm:w-12" />
+      <img src="${ROOT}assets/images/logo-192.webp" alt="" width="512" height="512" class="h-11 w-11 drop-shadow-md sm:h-12 sm:w-12" />
       <span class="nav-logo-text hidden font-display text-[0.95rem] uppercase leading-[0.95] min-[400px]:block">World Aid<br/>Walk</span>
     </a>
     <nav class="hidden items-center gap-1 lg:flex" aria-label="Main">
@@ -208,7 +208,7 @@
   <div class="container-x relative pt-16 sm:pt-20">
     <div class="flex flex-col gap-8 border-b border-white/10 pb-12 lg:flex-row lg:items-end lg:justify-between">
       <div class="flex items-center gap-5">
-        <img src="${ROOT}assets/images/logo.webp" alt="World Aid Walk" width="512" height="512" loading="lazy" class="h-20 w-20 sm:h-24 sm:w-24" />
+        <img src="${ROOT}assets/images/logo-192.webp" alt="World Aid Walk" width="512" height="512" loading="lazy" class="h-20 w-20 sm:h-24 sm:w-24" />
         <p class="font-hand text-[2.1rem] leading-[1.05] text-lime sm:text-5xl">${esc(fmt(get("event.slogan")))}</p>
       </div>
       <div class="flex flex-wrap gap-3">
